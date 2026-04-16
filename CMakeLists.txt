@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Networkmanager_GUI_Qt VERSION 0.1 LANGUAGES CXX)
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -15,7 +14,17 @@ qt_add_executable(appNetworkmanager_GUI_Qt
 qt_add_qml_module(appNetworkmanager_GUI_Qt
     URI Networkmanager_GUI_Qt
     VERSION 1.0
-    QML_FILES main.qml 
+    QML_FILES main.qml
+    SOURCES src/model/device_model.h
+    SOURCES src/model/device_model.cpp
+    SOURCES src/wrapper/nm_wrapper.h
+    SOURCES src/wrapper/nm_wrapper.cpp
+    SOURCES src/utils/network_utils.h
+    SOURCES src/utils/network_utils.cpp
+    SOURCES src/model/device_info.h
+    SOURCES src/model/device_info.cpp
+    SOURCES src/service/device_service.h
+    SOURCES src/service/device_service.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -31,6 +40,7 @@ set_target_properties(appNetworkmanager_GUI_Qt PROPERTIES
 
 target_link_libraries(appNetworkmanager_GUI_Qt
     PRIVATE Qt6::Quick
+    PRIVATE Qt6::Qml
     PRIVATE KF6::NetworkManagerQt)
 
 include(GNUInstallDirs)

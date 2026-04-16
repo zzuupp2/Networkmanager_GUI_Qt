@@ -1,8 +1,11 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 
 #include <QLocale>
 #include <QTranslator>
+
+#include <src/wrapper/nm_wrapper.h>
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +22,10 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine;
+
+    NetworkManagerWrapper nm;
+    engine.rootContext()->setContextProperty("nm", &nm);
+
     const QUrl url(QStringLiteral("qrc:/Networkmanager_GUI_Qt/main.qml"));
     QObject::connect(
         &engine,
