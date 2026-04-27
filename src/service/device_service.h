@@ -3,30 +3,38 @@
 #include <QObject>
 #include <QHash>
 #include <QSet>
-#include <NetworkManagerQt/Device>
+#include <QTimer>
 
-class DeviceService : public QObject {
+#include <NetworkManagerQt/Device>
+#include <src/model/device/device_info.h>
+
+namespace Net {
+
+
+class DeviceService : public QObject
+{
     Q_OBJECT
+
 public:
     explicit DeviceService(QObject *parent = nullptr);
-    void start();
+    void init();
 
 signals:
-    void deviceAdded(NetworkManager::Device::Ptr dev);
+    void deviceAdded(DeviceInfo info);
     void deviceRemoved(QString uni);
-    void deviceUpdated(NetworkManager::Device::Ptr dev);
+    void deviceUpdated(DeviceInfo info);
 
 private:
-    // ⭐ 用 D-Bus path 做 key（与 Notifier 一致）
-    QHash<QString, NetworkManager::Device::Ptr> m_devices;
 
-    // ⭐ 用 uni 防止重复监听
-    QSet<QString> m_watchedDevices;
-
-    void init();
-    void watchDevice(const NetworkManager::Device::Ptr &dev);
-
-private slots:
     void onDeviceAdded(const QString &path);
     void onDeviceRemoved(const QString &path);
+    void watchDevice(const NetworkManager::Device::Ptr &dev);
+
+private:
+    QHash<QString, NetworkManager::Device::Ptr> m_devices;
+    QSet<QString> m_watchedDevices;
+
+    // ⭐ 每个设备一个防抖 timer
+    QHash<QString, QTimer*> m_updateTimers;
 };
+}

@@ -22,21 +22,14 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine;
-
-    NetworkManagerWrapper nm;
+    qRegisterMetaType<Net::DeviceInfo>();
+    Net::NetworkManagerWrapper nm;
     engine.rootContext()->setContextProperty("nm", &nm);
 
-    const QUrl url(QStringLiteral("qrc:/Networkmanager_GUI_Qt/main.qml"));
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreated,
-        &app,
-        [url](QObject *obj, const QUrl &objUrl) {
-            if (!obj && url == objUrl)
-                QCoreApplication::exit(-1);
-        },
-        Qt::QueuedConnection);
-    engine.load(url);
+    engine.loadFromModule("Networkmanager_GUI_Qt", "Main");
 
-    return QCoreApplication::exec();
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+    return app.exec();
 }

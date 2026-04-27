@@ -68,7 +68,7 @@ namespace NetUtils {
         case R::CheckingIp: return "Checking IP";
         case R::WaitingForSecondaries: return "Waiting for Secondary Connections";
 
-        case R::Activated: return "Connected";
+        case R::Activated: return "Activated";
         case R::Deactivating: return "Disconnecting";
         case R::Failed: return "Failed";
 
@@ -138,7 +138,6 @@ namespace NetUtils {
 
     QString getHwAddr(const NetworkManager::Device::Ptr &dev) {
         QString result;
-
         if (dev) {
 
             auto wired = dev.objectCast<NetworkManager::WiredDevice>();
@@ -157,4 +156,63 @@ namespace NetUtils {
 
         return result;
     }
+
+    bool isDeviceType(const NetworkManager::Device::Ptr &dev,
+                      NetworkManager::Device::Type devType) {
+
+        if (!dev)
+            return false;
+
+        return dev->type() == devType;
+    }
+
+    bool isNetworkDevice(const NetworkManager::Device::Ptr &dev) {
+        using R = NetworkManager::Device;
+        if (!dev)
+            return false;
+
+        auto type = dev->type();
+
+        return type == R::Wifi ||
+               type == R::Ethernet;
+    }
+
+    bool isWifiDev(const NetworkManager::Device::Ptr &dev) {
+        using R = NetworkManager::Device;
+        return isDeviceType(dev,
+                           R::Wifi);
+    }
+
+    bool isEthernetDev(const NetworkManager::Device::Ptr &dev) {
+        using R = NetworkManager::Device;
+        return isDeviceType(dev,
+                            R::Ethernet);
+    }
+
+    bool isConSetType(const NetworkManager::ConnectionSettings::Ptr &set,
+                      NetworkManager::ConnectionSettings::ConnectionType conType) {
+
+        if (!set)
+            return false;
+
+        return set->connectionType() == conType;
+    }
+
+    bool isWiredConType(const NetworkManager::ConnectionSettings::Ptr &set) {
+        using S = NetworkManager::ConnectionSettings::ConnectionType;
+
+        return isConSetType(set,
+                            S::Wired);
+    }
+
+
+    bool isWirelessConType(const NetworkManager::ConnectionSettings::Ptr &set) {
+        using S = NetworkManager::ConnectionSettings::ConnectionType;
+        return isConSetType(set,
+                            S::Wireless);
+    }
+
+    // bool isConActive(const QString &uuid) {
+    //     for (const auto &ac : )
+    // }
 }

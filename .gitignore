@@ -82,3 +82,6 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.qtcreator/
+
+src/service/con_setting*
+src/connection/con_setting_model*
