@@ -26,10 +26,11 @@ namespace Net {
         Q_PROPERTY(ApModel* apModel READ apModel CONSTANT)
         Q_PROPERTY(ApService* apService READ apService CONSTANT)
         Q_PROPERTY(ConnectionListModel* connectionListModel READ connectionListModel CONSTANT)
+        Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
         Q_PROPERTY(ConnectionManager* connectionManager READ connectionManager CONSTANT)
         Q_PROPERTY(ConnectionManager* manager READ manager CONSTANT)
         Q_PROPERTY(ConnectionEditorModel* editor READ editor CONSTANT)
-        // Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
+        Q_PROPERTY(ConnectionRuntimeModel* runtimeModel READ runtimeModel CONSTANT)
 
     public:
         explicit NetworkManagerWrapper(QObject *parent = nullptr);
@@ -42,6 +43,7 @@ namespace Net {
 
         ConnectionListModel* connectionListModel();
         ConnectionRuntimeModel* connectionRuntimeModel();
+        ConnectionRuntimeModel* runtimeModel();
 
         ConnectionManager* connectionManager();
         ConnectionManager* manager();

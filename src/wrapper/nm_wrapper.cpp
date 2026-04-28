@@ -59,6 +59,10 @@ namespace Net {
         return &m_runtimeModel;
     }
 
+    ConnectionRuntimeModel* NetworkManagerWrapper::runtimeModel() {
+        return connectionRuntimeModel();
+    }
+
     ConnectionManager* NetworkManagerWrapper::connectionManager() {
         return &m_connectionManager;
     }
