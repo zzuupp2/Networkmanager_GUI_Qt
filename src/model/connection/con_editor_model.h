@@ -8,14 +8,16 @@
 
 namespace Net {
 
+class ConnectionManager;
+
 class ConnectionEditorModel : public QObject
 {
     Q_OBJECT
 
     // ========== 通用标识（只读或可编辑） ==========
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged)
-    Q_PROPERTY(QString uuid READ uuid CONSTANT)                       // 不可编辑
-    Q_PROPERTY(QString type READ type CONSTANT)                       // 连接类型（只读）
+    Q_PROPERTY(QString uuid READ uuid NOTIFY uuidChanged)             // 不可编辑（随加载数据变化）
+    Q_PROPERTY(QString type READ type NOTIFY typeChanged)             // 连接类型（只读，随加载数据变化）
     Q_PROPERTY(bool autoconnect READ autoconnect WRITE setAutoconnect NOTIFY autoconnectChanged)
     Q_PROPERTY(int autoconnectPriority READ autoconnectPriority WRITE setAutoconnectPriority NOTIFY autoconnectPriorityChanged)
     Q_PROPERTY(QString interfaceName READ interfaceName WRITE setInterfaceName NOTIFY interfaceNameChanged)
@@ -42,7 +44,7 @@ class ConnectionEditorModel : public QObject
 
     // ========== 编辑状态 ==========
     Q_PROPERTY(bool isModified READ isModified NOTIFY isModifiedChanged)
-    Q_PROPERTY(bool isNew READ isNew CONSTANT)                        // 是否新建连接
+    Q_PROPERTY(bool isNew READ isNew NOTIFY isNewChanged)             // 是否新建连接
 
 public:
     explicit ConnectionEditorModel(QObject *parent = nullptr);
@@ -50,9 +52,13 @@ public:
     // ----- 数据加载 -----
     void loadFromSettingInfo(const ConnectionSettingInfo &info);
     void loadDefaults(const QString &type);          // 新建连接时调用，如 "802-11-wireless"
+    void setConnectionManager(ConnectionManager *manager);
+    Q_INVOKABLE bool loadByUuid(const QString &uuid);
 
     // ----- 操作 -----
     Q_INVOKABLE void reset();                        // 取消编辑，恢复到原始值
+    Q_INVOKABLE bool setField(const QString &field, const QVariant &value); // 手动更新单个字段
+    Q_INVOKABLE void applyPatch(const QVariantMap &patch);                  // 手动批量更新字段
     Q_INVOKABLE ConnectionSettingInfo toSettingInfo() const;      // 导出为结构体
     Q_INVOKABLE QVariantMap toSettingsMap() const;                // 导出为 NM 需要的 QVariantMap
 
@@ -102,6 +108,8 @@ public:
 
 signals:
     void idChanged();
+    void uuidChanged();
+    void typeChanged();
     void autoconnectChanged();
     void autoconnectPriorityChanged();
     void interfaceNameChanged();
@@ -118,6 +126,7 @@ signals:
     // void ipv6GatewayChanged();
     // void ipv6DnsChanged();
     void isModifiedChanged(bool modified);
+    void isNewChanged(bool isNew);
 
     // 可选：通知外部操作状态
     void editAccepted();    // 保存成功后发射
@@ -128,6 +137,7 @@ private:
 
     ConnectionSettingInfo m_original;   // 加载时的原始数据
     ConnectionSettingInfo m_working;    // 工作副本，所有 getter 都读取这里
+    ConnectionManager *m_manager = nullptr;
     bool m_isModified = false;
     bool m_isNew = false;
 };

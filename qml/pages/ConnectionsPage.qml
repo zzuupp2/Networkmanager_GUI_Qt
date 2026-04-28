@@ -6,7 +6,48 @@ import "../components"
 
 Item {
     id: root
-    property string selectedUuid: ""
+    property string pendingUuid: ""
+    property var runtimeInfo: ({ active: false, ipv4: "", gateway: "", dns: [] })
+    Connections {
+        target: nm
+        function onCurrentUuidChanged() {
+            refreshRuntime()
+        }
+    }
+
+    function applySelection(uuid) {
+        if (!uuid || uuid === nm.currentUuid)
+            return
+
+        nm.selectConnection(uuid)
+        refreshRuntime()
+    }
+
+    function refreshRuntime() {
+        if (!nm.currentUuid) {
+            runtimeInfo = ({ active: false, ipv4: "", gateway: "", dns: [] })
+            return
+        }
+
+        runtimeInfo = nm.runtimeModel.getRuntimeByUuid(nm.currentUuid)
+    }
+
+    function ensureDefaultSelection() {
+        if (!listView.model || listView.count <= 0) {
+            nm.currentUuid = ""
+            refreshRuntime()
+            return
+        }
+
+        if (nm.editor.isModified)
+            return
+
+        if (!nm.currentUuid || !nm.hasConnection(nm.currentUuid)) {
+            const firstUuid = nm.firstConnectionUuid()
+            if (firstUuid)
+                applySelection(firstUuid)
+        }
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -38,7 +79,7 @@ Item {
                     onClicked: {
                         if (checkUnsaved()) return
                         nm.editor.loadDefaults("802-11-wireless")
-                        selectedUuid = ""
+                        nm.currentUuid = ""
                     }
                 }
 
@@ -52,17 +93,16 @@ Item {
 
                     model: nm.connectionListModel
 
-                    Component.onCompleted: {
-                            console.log("connectionListModel:", nm.connectionListModel)
-                            console.log("model count:", listView.count)
-                        }
+                    onCountChanged: ensureDefaultSelection()
+
+                    Component.onCompleted: ensureDefaultSelection()
 
                     delegate: Rectangle {
                         width: listView.width
                         height: 60
                         radius: 6
 
-                        property bool selected: model.conUuid === selectedUuid
+                        property bool selected: model.conUuid === nm.currentUuid
                         color: selected ? "#d0eaff" : "#f5f5f5"
 
                         border.color: selected ? "#3399ff" : "#ddd"
@@ -70,13 +110,13 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (model.conUuid === selectedUuid)
+                                if (model.conUuid === nm.currentUuid)
                                     return
 
-                                if (checkUnsaved()) return
+                                if (checkUnsaved(model.conUuid))
+                                    return
 
-                                selectedUuid = model.conUuid
-                                nm.editor.loadByUuid(model.conUuid)
+                                applySelection(model.conUuid)
                             }
                         }
 
@@ -133,11 +173,11 @@ Item {
                     text: "删除连接"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
-                    enabled: selectedUuid !== ""
+                    enabled: nm.currentUuid !== ""
 
                     onClicked: {
-                        nm.manager.remove(selectedUuid)
-                        selectedUuid = ""
+                        nm.manager.remove(nm.currentUuid)
+                        nm.currentUuid = ""
                     }
                 }
             }
@@ -186,13 +226,13 @@ Item {
 
                             Label {
                                 text: "状态: " +
-                                      (nm.isActive(selectedUuid) ? "已连接" : "未连接")
-                                color: nm.isActive(selectedUuid) ? "green" : "#666"
+                                      (runtimeInfo.active ? "已连接" : "未连接")
+                                color: runtimeInfo.active ? "green" : "#666"
                             }
 
-                            Label { text: "IPv4: " + nm.getIpv4(selectedUuid) }
-                            Label { text: "网关: " + nm.getGateway(selectedUuid) }
-                            Label { text: "DNS: " + nm.getDns(selectedUuid) }
+                            Label { text: "IPv4: " + (runtimeInfo.ipv4 || "") }
+                            Label { text: "网关: " + (runtimeInfo.gateway || "") }
+                            Label { text: "DNS: " + ((runtimeInfo.dns || []).join(", ")) }
 
                             Item { Layout.fillHeight: true }
                         }
@@ -252,10 +292,11 @@ Item {
     // =====================================
     // 未保存提示
     // =====================================
-    function checkUnsaved() {
+    function checkUnsaved(nextUuid) {
         if (!nm.editor.isModified)
             return false
 
+        pendingUuid = nextUuid || ""
         confirmDialog.open()
         return true
     }
@@ -265,14 +306,24 @@ Item {
         modal: true
         title: "未保存更改"
 
-        standardButtons: Dialog.Yes | Dialog.No | Dialog.Cancel
+        standardButtons: Dialog.Yes | Dialog.No
 
         onAccepted: {
             nm.manager.apply(nm.editor.toSettingsMap(), nm.editor.isNew)
+            if (pendingUuid) {
+                const uuid = pendingUuid
+                pendingUuid = ""
+                applySelection(uuid)
+            }
         }
 
         onRejected: {
             nm.editor.reset()
+            if (pendingUuid) {
+                const uuid = pendingUuid
+                pendingUuid = ""
+                applySelection(uuid)
+            }
         }
     }
 }

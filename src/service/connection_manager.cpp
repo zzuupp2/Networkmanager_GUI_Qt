@@ -42,68 +42,83 @@ ConnectionManager::ConnectionManager(QObject *parent)
 
 // ======================= 配置管理 =======================
 
-QString ConnectionManager::addConnection(const NMVariantMapMap &settings)
+void ConnectionManager::addConnection(const NMVariantMapMap &settings)
 {
-    QDBusPendingReply<QDBusObjectPath> reply = NetworkManager::addConnection(settings);
-    reply.waitForFinished();
+    auto reply = NetworkManager::addConnection(settings);
+    auto watcher = new QDBusPendingCallWatcher(reply, this);
 
-    if (reply.isError()) {
-        emit errorOccurred(QString(), reply.error().message());
-        return QString();
-    }
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this](QDBusPendingCallWatcher *w) {
+                QDBusPendingReply<QDBusObjectPath> r = *w;
+                w->deleteLater();
 
-    // 从返回的路径中提取 UUID
-    QString path = reply.value().path();
-    NetworkManager::Connection::Ptr conn = NetworkManager::findConnection(path);
-    if (!conn) {
-        emit errorOccurred(QString(), "Connection created but unable to find it");
-        return QString();
-    }
+                if (r.isError()) {
+                    emit errorOccurred(QString(), r.error().message());
+                    emit operationCompleted(QString(), false);
+                    return;
+                }
 
-    QString uuid = conn->uuid();
-    emit connectionAdded(uuid);
-    return uuid;
+                const QString path = r.value().path();
+                auto conn = NetworkManager::findConnection(path);
+                const QString uuid = conn ? conn->uuid() : QString();
+
+                emit connectionAdded(uuid);
+                emit operationCompleted(uuid, true);
+            });
 }
 
-bool ConnectionManager::updateConnection(const QString &uuid, const NMVariantMapMap &newSettings)
+void ConnectionManager::updateConnection(const QString &uuid, const NMVariantMapMap &newSettings)
 {
     auto conn = NetworkManager::findConnectionByUuid(uuid);
     if (!conn || !conn->isValid()) {
         emit errorOccurred(uuid, "Connection not found");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
-    // 更新连接
-    QDBusPendingReply<> reply = conn->update(newSettings);
-    reply.waitForFinished();
+    auto reply = conn->update(newSettings);
+    auto watcher = new QDBusPendingCallWatcher(reply, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, uuid](QDBusPendingCallWatcher *w) {
+                QDBusPendingReply<> r = *w;
+                w->deleteLater();
 
-    if (reply.isError()) {
-        emit errorOccurred(uuid, reply.error().message());
-        return false;
-    }
+                if (r.isError()) {
+                    emit errorOccurred(uuid, r.error().message());
+                    emit operationCompleted(uuid, false);
+                    return;
+                }
 
-    emit connectionUpdated(uuid);
-    return true;
+                emit connectionUpdated(uuid);
+                emit operationCompleted(uuid, true);
+            });
 }
 
-bool ConnectionManager::deleteConnection(const QString &uuid)
+void ConnectionManager::deleteConnection(const QString &uuid)
 {
     auto conn = NetworkManager::findConnectionByUuid(uuid);
     if (!conn || !conn->isValid()) {
         emit errorOccurred(uuid, "Connection not found");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
-    QDBusPendingReply<> reply = conn->remove();
-    reply.waitForFinished();
+    auto reply = conn->remove();
+    auto watcher = new QDBusPendingCallWatcher(reply, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, uuid](QDBusPendingCallWatcher *w) {
+                QDBusPendingReply<> r = *w;
+                w->deleteLater();
 
-    if (reply.isError()) {
-        emit errorOccurred(uuid, reply.error().message());
-        return false;
-    }
+                if (r.isError()) {
+                    emit errorOccurred(uuid, r.error().message());
+                    emit operationCompleted(uuid, false);
+                    return;
+                }
 
-    emit connectionRemoved(uuid);
-    return true;
+                emit connectionRemoved(uuid);
+                emit operationCompleted(uuid, true);
+            });
 }
 
 ConnectionSettingInfo ConnectionManager::getConnectionSettingInfo(const QString &uuid) const
@@ -127,40 +142,71 @@ ConnectionSettingInfo ConnectionManager::getConnectionSettingInfo(const QString 
 
 // ======================= 激活/断开 =======================
 
-bool ConnectionManager::activateConnection(const QString &uuid)
+void ConnectionManager::activateConnection(const QString &uuid)
 {
     auto conn = NetworkManager::findConnectionByUuid(uuid);
-    if (!conn) {
+    if (!conn || !conn->isValid()) {
         emit errorOccurred(uuid, "Connection not found");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
     auto settings = conn->settings();
     NetworkManager::Device::Ptr selectedDev;
+    const QString preferredIface = settings ? settings->interfaceName() : QString();
 
-    for (const auto &dev : NetworkManager::networkInterfaces()) {
+    auto matchesConnectionType = [settings](const NetworkManager::Device::Ptr &dev) {
+        if (!settings || !dev)
+            return false;
 
-        if (!dev)
-            continue;
-
-        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wireless &&
-            dev->type() == NetworkManager::Device::Wifi) {
-
-            selectedDev = dev;
-            break;
+        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wireless) {
+            return dev->type() == NetworkManager::Device::Wifi;
         }
 
-        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wired &&
-            dev->type() == NetworkManager::Device::Ethernet) {
+        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wired) {
+            return dev->type() == NetworkManager::Device::Ethernet;
+        }
 
-            selectedDev = dev;
-            break;
+        return false;
+    };
+
+    // 优先匹配 connection.interface-name
+    if (!preferredIface.isEmpty()) {
+        for (const auto &dev : NetworkManager::networkInterfaces()) {
+            if (matchesConnectionType(dev) && dev->interfaceName() == preferredIface) {
+                selectedDev = dev;
+                break;
+            }
+        }
+    }
+
+    // 否则回退为同类型第一个可用设备
+    if (!selectedDev) {
+        for (const auto &dev : NetworkManager::networkInterfaces()) {
+            if (matchesConnectionType(dev)) {
+                if (dev->state() == NetworkManager::Device::Unavailable)
+                    continue;
+
+                selectedDev = dev;
+                break;
+            }
+        }
+    }
+
+    if (!selectedDev) {
+        // 兜底：允许 Unavailable 也尝试一次
+        for (const auto &dev : NetworkManager::networkInterfaces()) {
+            if (matchesConnectionType(dev)) {
+                selectedDev = dev;
+                break;
+            }
         }
     }
 
     if (!selectedDev) {
         emit errorOccurred(uuid, "No suitable device");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
     qDebug() << "Activating on device:" << selectedDev->interfaceName();
@@ -181,6 +227,7 @@ bool ConnectionManager::activateConnection(const QString &uuid)
 
                 if (r.isError()) {
                     emit errorOccurred(uuid, r.error().message());
+                    emit operationCompleted(uuid, false);
                     return;
                 }
 
@@ -189,20 +236,21 @@ bool ConnectionManager::activateConnection(const QString &uuid)
                 emit operationCompleted(uuid, true);
             });
 
-    return true;
 }
 
-bool ConnectionManager::deactivateConnection(const QString &uuid)
+void ConnectionManager::deactivateConnection(const QString &uuid)
 {
     if (uuid.isEmpty()) {
         emit errorOccurred(uuid, "UUID is empty");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
     // ⭐ 防止重复断开（关键）
     if (m_savedDevAutoConnect.contains(uuid)) {
         qDebug() << "Already deactivating, skip";
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
     NetworkManager::ActiveConnection::Ptr targetAc;
@@ -216,7 +264,8 @@ bool ConnectionManager::deactivateConnection(const QString &uuid)
 
     if (!targetAc) {
         emit errorOccurred(uuid, "No active connection with this UUID");
-        return false;
+        emit operationCompleted(uuid, false);
+        return;
     }
 
     const QStringList devUnis = targetAc->devices();
@@ -265,13 +314,54 @@ bool ConnectionManager::deactivateConnection(const QString &uuid)
                     }
 
                     emit errorOccurred(uuid, r.error().message());
+                    emit operationCompleted(uuid, false);
                     return;
                 }
 
                 emit operationCompleted(uuid, true);
             });
+}
 
-    return true;
+void ConnectionManager::apply(const QVariantMap &settings, bool isNew, const QString &uuid)
+{
+    NMVariantMapMap nmSettings;
+    for (auto it = settings.constBegin(); it != settings.constEnd(); ++it) {
+        nmSettings.insert(it.key(), it.value().toMap());
+    }
+
+    if (isNew) {
+        addConnection(nmSettings);
+        return;
+    }
+
+    QString targetUuid = uuid;
+    if (targetUuid.isEmpty()) {
+        const auto connMap = settings.value("connection").toMap();
+        targetUuid = connMap.value("uuid").toString();
+    }
+
+    if (targetUuid.isEmpty()) {
+        emit errorOccurred(QString(), "Missing uuid for update");
+        emit operationCompleted(QString(), false);
+        return;
+    }
+
+    updateConnection(targetUuid, nmSettings);
+}
+
+void ConnectionManager::remove(const QString &uuid)
+{
+    deleteConnection(uuid);
+}
+
+void ConnectionManager::activate(const QString &uuid)
+{
+    activateConnection(uuid);
+}
+
+void ConnectionManager::deactivate(const QString &uuid)
+{
+    deactivateConnection(uuid);
 }
 
 // ======================= 私有辅助 =======================
