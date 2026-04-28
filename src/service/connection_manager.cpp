@@ -130,31 +130,65 @@ ConnectionSettingInfo ConnectionManager::getConnectionSettingInfo(const QString 
 bool ConnectionManager::activateConnection(const QString &uuid)
 {
     auto conn = NetworkManager::findConnectionByUuid(uuid);
-    if (!conn) {
+    if (!conn || !conn->isValid()) {
         emit errorOccurred(uuid, "Connection not found");
         return false;
     }
 
     auto settings = conn->settings();
     NetworkManager::Device::Ptr selectedDev;
+    const QString preferredIface = settings ? settings->interfaceName() : QString();
 
-    for (const auto &dev : NetworkManager::networkInterfaces()) {
+   // for (const auto &dev : NetworkManager::networkInterfaces()) {
 
-        if (!dev)
-            continue;
+    auto matchesConnectionType = [settings](const NetworkManager::Device::Ptr &dev) {
+        if (!settings || !dev)
+            return false;
 
-        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wireless &&
-            dev->type() == NetworkManager::Device::Wifi) {
-
-            selectedDev = dev;
-            break;
+        // if (!dev)
+        //     continue;
+        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wireless) {
+            return dev->type() == NetworkManager::Device::Wifi;
         }
 
-        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wired &&
-            dev->type() == NetworkManager::Device::Ethernet) {
+        // if (settings->connectionType() == NetworkManager::ConnectionSettings::Wireless &&
+        //     dev->type() == NetworkManager::Device::Wifi) {
 
-            selectedDev = dev;
-            break;
+        if (settings->connectionType() == NetworkManager::ConnectionSettings::Wired) {
+            return dev->type() == NetworkManager::Device::Ethernet;
+        }
+
+        return false;
+    };
+
+    if (!preferredIface.isEmpty()) {
+        for (const auto &dev : NetworkManager::networkInterfaces()) {
+            if (matchesConnectionType(dev) && dev->interfaceName() == preferredIface) {
+                selectedDev = dev;
+                break;
+            }
+    }
+
+        // if (settings->connectionType() == NetworkManager::ConnectionSettings::Wired &&
+        //     dev->type() == NetworkManager::Device::Ethernet) {
+
+    if (!selectedDev) {
+        for (const auto &dev : NetworkManager::networkInterfaces())
+            if (matchesConnectionType(dev)) {
+                if (dev->state() == NetworkManager::Device::Unavailable)
+                    continue;
+                selectedDev = dev;
+                break;
+            }
+        }
+    }
+
+    if (!selectedDev) {
+        for (const auto &dev : NetworkManager::networkInterfaces()) {
+            if (matchesConnectionType(dev)) {
+                selectedDev = dev;
+                break;
+            }
         }
     }
 

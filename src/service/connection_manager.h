@@ -38,12 +38,8 @@ signals:
     void errorOccurred(const QString &uuid, const QString &error);
 
 private:
-    // QHash<QString, QPair<QString, bool>> m_savedDevAutoConnect;
-    // QHash<QString, QList<QPair<QString, bool>>> m_savedDevAutoConnect;
     QHash<QString, QHash<QString, bool>> m_savedDevAutoConnect;
     QString connectionPath(const QString &uuid) const;
-    // NetworkManager::Device::Ptr deviceForActiveConnection(const QString &devUuid) const;
-    // void setDeviceAutoconnect(const QString &uuid, bool setEnabled);
 };
 
 } // namespace Net

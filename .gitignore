@@ -84,4 +84,4 @@ CMakeLists.txt.user*
 /.qtcreator/
 
 src/service/con_setting*
-src/connection/con_setting_model*
+src/model/connection/con_setting_model*

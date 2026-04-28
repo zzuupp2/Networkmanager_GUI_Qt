@@ -18,7 +18,7 @@ struct ConnectionSettingInfo
     NetworkManager::ConnectionSettings::ConnectionType typeEnum;
 
     // ===== 通用行为 =====
-    int timestamp = 0;
+    QDateTime timestamp;
     bool autoconnect = true;
     int autoconnectPriority = 0;    // 对应 NM 的 autoconnect-priority
     bool active = false;            // 运行时激活状态（仅用于展示，不存储）

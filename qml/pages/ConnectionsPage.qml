@@ -106,9 +106,9 @@ Item {
 
                                 onClicked: {
                                     if (model.conActive)
-                                        nm.manager.deactivate(model.conUuid)
+                                        nm.connectionManager.deactivateConnection(model.conUuid)
                                     else
-                                        nm.manager.activate(model.conUuid)
+                                        nm.connectionManager.activateConnection(model.conUuid)
                                 }
                             }
                         }
