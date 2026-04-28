@@ -1,6 +1,8 @@
 #include <QDebug>
+#include <QMetaType>
 
 #include "con_editor_model.h"
+#include "src/service/connection_manager.h"
 namespace Net {
 
 ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
@@ -14,13 +16,23 @@ ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
 
 void ConnectionEditorModel::loadFromSettingInfo(const ConnectionSettingInfo &info)
 {
+    const auto oldUuid = m_working.uuid;
+    const auto oldType = m_working.type;
+
     m_original = info;
     m_working = info;
-    m_isNew = false;
+    if (m_isNew) {
+        m_isNew = false;
+        emit isNewChanged(false);
+    }
     m_isModified = false;
 
     // 通知所有属性变更，触发 QML 界面完全刷新
     emit idChanged();
+    if (oldUuid != m_working.uuid)
+        emit uuidChanged();
+    if (oldType != m_working.type)
+        emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -61,8 +73,29 @@ void ConnectionEditorModel::loadDefaults(const QString &type)
     // info.ipv6Method = "auto";
     info.interfaceName = "";
 
-    m_isNew = true;
     loadFromSettingInfo(info);
+    if (!m_isNew) {
+        m_isNew = true;
+        emit isNewChanged(true);
+    }
+}
+
+void ConnectionEditorModel::setConnectionManager(ConnectionManager *manager)
+{
+    m_manager = manager;
+}
+
+bool ConnectionEditorModel::loadByUuid(const QString &uuid)
+{
+    if (!m_manager || uuid.isEmpty())
+        return false;
+
+    auto info = m_manager->getConnectionSettingInfo(uuid);
+    if (info.uuid.isEmpty())
+        return false;
+
+    loadFromSettingInfo(info);
+    return true;
 }
 
 // ========== 操作 ==========
@@ -74,6 +107,8 @@ void ConnectionEditorModel::reset()
 
     // 刷新所有属性到原始值
     emit idChanged();
+    emit uuidChanged();
+    emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -94,6 +129,74 @@ void ConnectionEditorModel::reset()
     emit editRejected();
 }
 
+bool ConnectionEditorModel::setField(const QString &field, const QVariant &value)
+{
+    if (field == "id") {
+        setId(value.toString());
+        return true;
+    }
+    if (field == "autoconnect") {
+        setAutoconnect(value.toBool());
+        return true;
+    }
+    if (field == "autoconnectPriority") {
+        setAutoconnectPriority(value.toInt());
+        return true;
+    }
+    if (field == "interfaceName") {
+        setInterfaceName(value.toString());
+        return true;
+    }
+    if (field == "ssid") {
+        setSsid(value.toString());
+        return true;
+    }
+    if (field == "wirelessSecurity") {
+        setWirelessSecurity(value.toString());
+        return true;
+    }
+    if (field == "wirelessPassword") {
+        setWirelessPassword(value.toString());
+        return true;
+    }
+    if (field == "mtu") {
+        setMtu(value.toInt());
+        return true;
+    }
+    if (field == "ipv4Method") {
+        setIpv4Method(value.toString());
+        return true;
+    }
+    if (field == "ipv4Address") {
+        setIpv4Address(value.toString());
+        return true;
+    }
+    if (field == "ipv4Gateway") {
+        setIpv4Gateway(value.toString());
+        return true;
+    }
+    if (field == "ipv4Dns") {
+        if (value.canConvert<QStringList>()) {
+            setIpv4Dns(value.toStringList());
+            return true;
+        }
+
+        if (value.typeId() == QMetaType::QString) {
+            setIpv4Dns(value.toString().split(',', Qt::SkipEmptyParts));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ConnectionEditorModel::applyPatch(const QVariantMap &patch)
+{
+    for (auto it = patch.constBegin(); it != patch.constEnd(); ++it) {
+        setField(it.key(), it.value());
+    }
+}
+
 ConnectionSettingInfo ConnectionEditorModel::toSettingInfo() const
 {
     return m_working;
@@ -101,98 +204,7 @@ ConnectionSettingInfo ConnectionEditorModel::toSettingInfo() const
 
 QVariantMap ConnectionEditorModel::toSettingsMap() const
 {
-    QVariantMap topMap;
-
-    // connection 子映射
-    QVariantMap conn;
-    conn["id"] = m_working.id;
-    if (!m_working.uuid.isEmpty())
-        conn["uuid"] = m_working.uuid;
-    conn["type"] = m_working.type;
-    conn["autoconnect"] = m_working.autoconnect;
-    conn["autoconnect-priority"] = m_working.autoconnectPriority;
-    if (!m_working.interfaceName.isEmpty())
-        conn["interface-name"] = m_working.interfaceName;
-    topMap["connection"] = conn;
-
-    // 802-11-wireless 子映射（仅当类型为无线）
-    if (m_working.type == "802-11-wireless") {
-        QVariantMap wifi;
-        if (!m_working.ssid.isEmpty())
-            wifi["ssid"] = m_working.ssid.toUtf8();   // NM 要求字节数组
-        // 安全设置
-        if (!m_working.wirelessSecurity.isEmpty() && m_working.wirelessSecurity != "none") {
-            QVariantMap sec;
-            sec["key-mgmt"] = m_working.wirelessSecurity;
-            if (m_working.wirelessSecurity == "wpa-psk" && !m_working.wirelessPassword.isEmpty())
-                sec["psk"] = m_working.wirelessPassword;
-            // 可扩展其他安全类型
-            wifi["security"] = sec;
-        }
-        topMap["802-11-wireless"] = wifi;
-    }
-
-    // 802-3-ethernet 子映射（有线）
-    if (m_working.type == "802-3-ethernet") {
-        QVariantMap eth;
-        if (m_working.mtu > 0)
-            eth["mtu"] = m_working.mtu;
-        topMap["802-3-ethernet"] = eth;
-    }
-
-    // ipv4 子映射
-    QVariantMap ipv4;
-    ipv4["method"] = m_working.ipv4Method;
-    if (m_working.ipv4Method == "manual") {
-        // 地址处理
-        if (!m_working.ipv4Address.isEmpty()) {
-            QVariantMap addrEntry;
-            addrEntry["address"] = m_working.ipv4Address;
-            addrEntry["prefix"] = 24;   // 简化，可扩展解析
-            QVariantList addrs;
-            addrs.append(addrEntry);
-            ipv4["addresses"] = addrs;
-        }
-        if (!m_working.ipv4Gateway.isEmpty())
-            ipv4["gateway"] = m_working.ipv4Gateway;
-        if (!m_working.ipv4Dns.isEmpty()) {
-            QVariantList dns;
-            for (const auto &d : m_working.ipv4Dns)
-                dns.append(d);
-            ipv4["dns"] = dns;
-        }
-    }
-    topMap["ipv4"] = ipv4;
-
-    // // ipv6 子映射
-    // QVariantMap ipv6;
-    // ipv6["method"] = m_working.ipv6Method;
-    // if (m_working.ipv6Method == "manual") {
-    //     if (!m_working.ipv6Address.isEmpty()) {
-    //         QVariantMap addr;
-    //         addr["address"] = m_working.ipv6Address;
-    //         addr["prefix"] = 64;
-    //         QVariantList addrs;
-    //         addrs.append(addr);
-    //         ipv6["addresses"] = addrs;
-    //     }
-    //     if (!m_working.ipv6Gateway.isEmpty())
-    //         ipv6["gateway"] = m_working.ipv6Gateway;
-    //     if (!m_working.ipv6Dns.isEmpty()) {
-    //         QVariantList dns;
-    //         for (const auto &d : m_working.ipv6Dns)
-    //             dns.append(d);
-    //         ipv6["dns"] = dns;
-    //     }
-    // }
-    // topMap["ipv6"] = ipv6;
-
-    // 合并 extra 字段（如果存在）
-    for (auto it = m_working.extra.begin(); it != m_working.extra.end(); ++it) {
-        topMap[it.key()] = it.value();
-    }
-
-    return topMap;
+    return m_working.toNMSettings();
 }
 
 // ========== 属性访问器 ==========

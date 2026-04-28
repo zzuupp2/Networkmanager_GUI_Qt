@@ -17,8 +17,8 @@ namespace NetUtils {
     bool isWifiDev(const NetworkManager::Device::Ptr &dev);
     bool isEthernetDev(const NetworkManager::Device::Ptr &dev);
 
-    bool isConSetType(const NetworkManager::ConnectionSettings &set,
-                              NetworkManager::ConnectionSettings::ConnectionType conType);
+    bool isConSetType(const NetworkManager::ConnectionSettings::Ptr &set,
+                      NetworkManager::ConnectionSettings::ConnectionType conType);
 
     bool isWiredConType(const NetworkManager::ConnectionSettings::Ptr &set);
     bool isWirelessConType(const NetworkManager::ConnectionSettings::Ptr &set);

@@ -25,6 +25,8 @@ ConnectionSettingInfo ConnectionSettingInfo::fromNMSettings(
     info.uuid = settings->uuid();
     info.type = NetworkManager::ConnectionSettings::typeAsString(settings->connectionType());
     info.typeEnum = settings->connectionType();
+    info.active = active;
+    info.timestamp = settings->timestamp();
 
     // ===== 通用设置 =====
     info.autoconnect = settings->autoconnect();
@@ -100,9 +102,9 @@ ConnectionSettingInfo ConnectionSettingInfo::fromNMSettings(
         case NetworkManager::Ipv4Setting::ConfigMethod::Automatic
             : info.ipv4Method = "auto"; break;
         case NetworkManager::Ipv4Setting::ConfigMethod::Disabled
-            : info.ipv4Method = "disable"; break;
+            : info.ipv4Method = "disabled"; break;
         case NetworkManager::Ipv4Setting::ConfigMethod::LinkLocal
-            : info.ipv4Method = "link-loacl"; break;
+            : info.ipv4Method = "link-local"; break;
         case NetworkManager::Ipv4Setting::ConfigMethod::Manual
             : info.ipv4Method = "manual"; break;
         case NetworkManager::Ipv4Setting::ConfigMethod::Shared
@@ -112,11 +114,14 @@ ConnectionSettingInfo ConnectionSettingInfo::fromNMSettings(
         }
 
         if (info.ipv4Method == "manual") {
+            const auto addresses = ipv4->addresses();
 
             // 仅取第一个地址和网关
-            if (!ipv4->addresses().isEmpty()) {
-                const auto &addr = ipv4->addresses().first();
-                info.ipv4Address = addr.ip().toString() + "/" + QString::number(addr.prefixLength());
+            if (!addresses.isEmpty()) {
+                const auto &addr = addresses.first();
+                info.ipv4Address =
+                    addr.ip().toString() + "/" +
+                    QString::number(addr.prefixLength());
                 info.ipv4Gateway = addr.gateway().toString();
             }
 
@@ -207,7 +212,7 @@ QVariantMap ConnectionSettingInfo::toNMSettings() const
     if (type == "802-11-wireless") {
         QVariantMap wirelessMap;
         if (!ssid.isEmpty())
-            wirelessMap["ssid"] = ssid;
+            wirelessMap["ssid"] = ssid.toUtf8();
         if (extra.contains("mode"))
             wirelessMap["mode"] = extra["mode"];
         if (!wirelessMap.isEmpty())

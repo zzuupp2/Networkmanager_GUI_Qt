@@ -1,4 +1,5 @@
 #include "nm_wrapper.h"
+#include <QTimer>
 
 namespace Net {
 
@@ -17,9 +18,17 @@ namespace Net {
 
         // initConnectionRuntimeModel();
 
+        m_editor.setConnectionManager(&m_connectionManager);
         initDeviceService();
         // initConSetService();
         // m_conService.bindModel(&m_conModel);
+
+        QTimer::singleShot(0, this, [this]() {
+            const auto first = firstConnectionUuid();
+            if (!first.isEmpty()) {
+                selectConnection(first);
+            }
+        });
 
     }
 
@@ -58,8 +67,50 @@ namespace Net {
         return &m_runtimeModel;
     }
 
-    ConnectionManager* NetworkManagerWrapper::connectionManager() {
+    ConnectionRuntimeModel* NetworkManagerWrapper::runtimeModel() {
+        return connectionRuntimeModel();
+    }
+
+    ConnectionManager* NetworkManagerWrapper::manager() {
         return &m_connectionManager;
+    }
+
+    ConnectionEditorModel* NetworkManagerWrapper::editor() {
+        return &m_editor;
+    }
+
+    QString NetworkManagerWrapper::currentUuid() const {
+        return m_currentUuid;
+    }
+
+    void NetworkManagerWrapper::setCurrentUuid(const QString &uuid) {
+        if (m_currentUuid == uuid)
+            return;
+
+        m_currentUuid = uuid;
+        emit currentUuidChanged();
+    }
+
+    void NetworkManagerWrapper::selectConnection(const QString &uuid) {
+        if (uuid.isEmpty())
+            return;
+
+        if (!hasConnection(uuid))
+            return;
+
+        setCurrentUuid(uuid);
+        m_editor.loadByUuid(uuid);
+    }
+
+    QString NetworkManagerWrapper::firstConnectionUuid() const {
+        if (m_connectionList.rowCount({}) <= 0)
+            return {};
+
+        return m_connectionList.uuidAt(0);
+    }
+
+    bool NetworkManagerWrapper::hasConnection(const QString &uuid) const {
+        return m_connectionList.contains(uuid);
     }
 
     // ConnectionSettingModel* NetworkManagerWrapper::connectionSettingModel() {
