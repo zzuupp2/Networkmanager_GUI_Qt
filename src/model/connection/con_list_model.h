@@ -2,6 +2,7 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QVariantMap>
 
 #include "src/service/con_runtime_service.h"
 
@@ -33,6 +34,8 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE QString uuidAt(int row) const;
+    Q_INVOKABLE bool contains(const QString &uuid) const;
+    Q_INVOKABLE QVariantMap get(int row) const;
 
 public slots:
     void reload();

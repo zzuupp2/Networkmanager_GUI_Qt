@@ -2,6 +2,7 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QVariantMap>
 
 #include "src/service/con_runtime_service.h"
 
@@ -29,6 +30,8 @@ public:
     int rowCount(const QModelIndex &) const override;
     QVariant data(const QModelIndex &, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
+
+    Q_INVOKABLE QVariantMap getRuntimeByUuid(const QString &uuid) const;
 
 private slots:
     void onStateChanged(const QString &uuid);
