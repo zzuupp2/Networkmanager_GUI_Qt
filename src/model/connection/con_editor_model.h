@@ -42,7 +42,7 @@ class ConnectionEditorModel : public QObject
 
     // ========== 编辑状态 ==========
     Q_PROPERTY(bool isModified READ isModified NOTIFY isModifiedChanged)
-    Q_PROPERTY(bool isNew READ isNew CONSTANT)                        // 是否新建连接
+    Q_PROPERTY(bool isNew READ isNew NOTIFY isNewChanged)             // 是否新建连接
 
 public:
     explicit ConnectionEditorModel(QObject *parent = nullptr);
@@ -118,6 +118,7 @@ signals:
     // void ipv6GatewayChanged();
     // void ipv6DnsChanged();
     void isModifiedChanged(bool modified);
+    void isNewChanged(bool isNew);
 
     // 可选：通知外部操作状态
     void editAccepted();    // 保存成功后发射
