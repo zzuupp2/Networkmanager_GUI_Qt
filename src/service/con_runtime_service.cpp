@@ -24,6 +24,11 @@ ConnectionRuntimeService::ConnectionRuntimeService(QObject *parent)
             this,
             &ConnectionRuntimeService::updateAll);
 
+    connect(NetworkManager::notifier(),
+            &NetworkManager::Notifier::activatingConnectionChanged,
+            this,
+            &ConnectionRuntimeService::updateAll);
+
     refreshActiveConnectionWatchers();
     updateAll();
 }
@@ -60,16 +65,15 @@ void ConnectionRuntimeService::attachActiveConnection(const QString &path)
 
     m_watchedActiveConnections.insert(path, ac);
 
-    QObject::connect(ac.data(), SIGNAL(stateChanged(uint,uint)),
-                     this, SLOT(onWatchedActiveConnectionChanged()));
-    QObject::connect(ac.data(), SIGNAL(stateChanged(uint,uint,uint)),
-                     this, SLOT(onWatchedActiveConnectionChanged()));
-    QObject::connect(ac.data(), SIGNAL(ipV4ConfigChanged()),
-                     this, SLOT(onWatchedActiveConnectionChanged()));
-    QObject::connect(ac.data(), SIGNAL(ipV6ConfigChanged()),
-                     this, SLOT(onWatchedActiveConnectionChanged()));
-    QObject::connect(ac.data(), SIGNAL(defaultChanged(bool)),
-                     this, SLOT(onWatchedActiveConnectionChanged()));
+    QObject::connect(ac.data(),
+                     &NetworkManager::ActiveConnection::stateChanged,
+                     this,
+                     [this] { updateAll(); });
+
+    QObject::connect(ac.data(),
+                     &NetworkManager::ActiveConnection::ipV4ConfigChanged,
+                     this,
+                     [this] { updateAll(); });
 }
 
 void ConnectionRuntimeService::detachActiveConnection(const QString &path)
@@ -78,7 +82,9 @@ void ConnectionRuntimeService::detachActiveConnection(const QString &path)
     if (it == m_watchedActiveConnections.end())
         return;
 
-    QObject::disconnect(it.value().data(), nullptr, this, nullptr);
+    if (it.value()) {
+        QObject::disconnect(it.value().data(), nullptr, this, nullptr);
+    }
     m_watchedActiveConnections.erase(it);
 }
 
@@ -91,11 +97,6 @@ void ConnectionRuntimeService::onActiveConnectionAdded(const QString &path)
 void ConnectionRuntimeService::onActiveConnectionRemoved(const QString &path)
 {
     detachActiveConnection(path);
-    updateAll();
-}
-
-void ConnectionRuntimeService::onWatchedActiveConnectionChanged()
-{
     updateAll();
 }
 
