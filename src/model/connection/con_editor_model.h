@@ -53,6 +53,10 @@ public:
 
     // ----- 操作 -----
     Q_INVOKABLE void reset();                        // 取消编辑，恢复到原始值
+    Q_INVOKABLE bool setField(const QString &field, const QVariant &value); // 手动更新单个字段
+    Q_INVOKABLE void applyPatch(const QVariantMap &patch);                  // 手动批量更新字段
+    Q_INVOKABLE QStringList editableFields() const;                         // 暴露给 QML 的可编辑字段清单
+    Q_INVOKABLE QVariantMap editableSnapshot() const;                       // 当前可编辑字段快照
     Q_INVOKABLE ConnectionSettingInfo toSettingInfo() const;      // 导出为结构体
     Q_INVOKABLE QVariantMap toSettingsMap() const;                // 导出为 NM 需要的 QVariantMap
 

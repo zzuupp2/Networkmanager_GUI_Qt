@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QMetaType>
 
 #include "con_editor_model.h"
 namespace Net {
@@ -98,6 +99,110 @@ void ConnectionEditorModel::reset()
     emit isModifiedChanged(false);
 
     emit editRejected();
+}
+
+bool ConnectionEditorModel::setField(const QString &field, const QVariant &value)
+{
+    if (field == "id") {
+        setId(value.toString());
+        return true;
+    }
+    if (field == "autoconnect") {
+        setAutoconnect(value.toBool());
+        return true;
+    }
+    if (field == "autoconnectPriority") {
+        setAutoconnectPriority(value.toInt());
+        return true;
+    }
+    if (field == "interfaceName") {
+        setInterfaceName(value.toString());
+        return true;
+    }
+    if (field == "ssid") {
+        setSsid(value.toString());
+        return true;
+    }
+    if (field == "wirelessSecurity") {
+        setWirelessSecurity(value.toString());
+        return true;
+    }
+    if (field == "wirelessPassword") {
+        setWirelessPassword(value.toString());
+        return true;
+    }
+    if (field == "mtu") {
+        setMtu(value.toInt());
+        return true;
+    }
+    if (field == "ipv4Method") {
+        setIpv4Method(value.toString());
+        return true;
+    }
+    if (field == "ipv4Address") {
+        setIpv4Address(value.toString());
+        return true;
+    }
+    if (field == "ipv4Gateway") {
+        setIpv4Gateway(value.toString());
+        return true;
+    }
+    if (field == "ipv4Dns") {
+        if (value.canConvert<QStringList>()) {
+            setIpv4Dns(value.toStringList());
+            return true;
+        }
+
+        if (value.typeId() == QMetaType::QString) {
+            setIpv4Dns(value.toString().split(',', Qt::SkipEmptyParts));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ConnectionEditorModel::applyPatch(const QVariantMap &patch)
+{
+    for (auto it = patch.constBegin(); it != patch.constEnd(); ++it) {
+        setField(it.key(), it.value());
+    }
+}
+
+QStringList ConnectionEditorModel::editableFields() const
+{
+    return {
+        "id",
+        "autoconnect",
+        "autoconnectPriority",
+        "interfaceName",
+        "ssid",
+        "wirelessSecurity",
+        "wirelessPassword",
+        "mtu",
+        "ipv4Method",
+        "ipv4Address",
+        "ipv4Gateway",
+        "ipv4Dns"
+    };
+}
+
+QVariantMap ConnectionEditorModel::editableSnapshot() const
+{
+    return {
+        {"id", id()},
+        {"autoconnect", autoconnect()},
+        {"autoconnectPriority", autoconnectPriority()},
+        {"interfaceName", interfaceName()},
+        {"ssid", ssid()},
+        {"wirelessSecurity", wirelessSecurity()},
+        {"wirelessPassword", wirelessPassword()},
+        {"mtu", mtu()},
+        {"ipv4Method", ipv4Method()},
+        {"ipv4Address", ipv4Address()},
+        {"ipv4Gateway", ipv4Gateway()},
+        {"ipv4Dns", ipv4Dns()}
+    };
 }
 
 ConnectionSettingInfo ConnectionEditorModel::toSettingInfo() const
