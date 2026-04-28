@@ -11,6 +11,7 @@
 - `manager` -> `ConnectionManager*`
 - `editor` -> `ConnectionEditorModel*`
 - `runtimeModel` -> `ConnectionRuntimeModel*`（`connectionRuntimeModel` 的简化别名）
+  - 支持 `getRuntimeByUuid(uuid)`，便于跟随左侧连接选项切换读取单项运行时信息
 
 ## 命名建议
 
