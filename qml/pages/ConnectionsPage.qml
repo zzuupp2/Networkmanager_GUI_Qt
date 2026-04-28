@@ -40,20 +40,26 @@ Item {
             return
 
         if (!selectedUuid) {
-            applySelection(listView.model.uuidAt(0))
+            const firstItem = listView.model.get(0)
+            if (firstItem && firstItem.conUuid)
+                applySelection(firstItem.conUuid)
             return
         }
 
         let exists = false
         for (let i = 0; i < listView.count; ++i) {
-            if (listView.model.uuidAt(i) === selectedUuid) {
+            const rowItem = listView.model.get(i)
+            if (rowItem && rowItem.conUuid === selectedUuid) {
                 exists = true
                 break
             }
         }
 
-        if (!exists)
-            applySelection(listView.model.uuidAt(0))
+        if (!exists) {
+            const firstItem = listView.model.get(0)
+            if (firstItem && firstItem.conUuid)
+                applySelection(firstItem.conUuid)
+        }
     }
 
     RowLayout {
