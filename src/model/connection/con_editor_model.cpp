@@ -15,6 +15,9 @@ ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
 
 void ConnectionEditorModel::loadFromSettingInfo(const ConnectionSettingInfo &info)
 {
+    const auto oldUuid = m_working.uuid;
+    const auto oldType = m_working.type;
+
     m_original = info;
     m_working = info;
     if (m_isNew) {
@@ -25,6 +28,10 @@ void ConnectionEditorModel::loadFromSettingInfo(const ConnectionSettingInfo &inf
 
     // 通知所有属性变更，触发 QML 界面完全刷新
     emit idChanged();
+    if (oldUuid != m_working.uuid)
+        emit uuidChanged();
+    if (oldType != m_working.type)
+        emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -81,6 +88,8 @@ void ConnectionEditorModel::reset()
 
     // 刷新所有属性到原始值
     emit idChanged();
+    emit uuidChanged();
+    emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -167,42 +176,6 @@ void ConnectionEditorModel::applyPatch(const QVariantMap &patch)
     for (auto it = patch.constBegin(); it != patch.constEnd(); ++it) {
         setField(it.key(), it.value());
     }
-}
-
-QStringList ConnectionEditorModel::editableFields() const
-{
-    return {
-        "id",
-        "autoconnect",
-        "autoconnectPriority",
-        "interfaceName",
-        "ssid",
-        "wirelessSecurity",
-        "wirelessPassword",
-        "mtu",
-        "ipv4Method",
-        "ipv4Address",
-        "ipv4Gateway",
-        "ipv4Dns"
-    };
-}
-
-QVariantMap ConnectionEditorModel::editableSnapshot() const
-{
-    return {
-        {"id", id()},
-        {"autoconnect", autoconnect()},
-        {"autoconnectPriority", autoconnectPriority()},
-        {"interfaceName", interfaceName()},
-        {"ssid", ssid()},
-        {"wirelessSecurity", wirelessSecurity()},
-        {"wirelessPassword", wirelessPassword()},
-        {"mtu", mtu()},
-        {"ipv4Method", ipv4Method()},
-        {"ipv4Address", ipv4Address()},
-        {"ipv4Gateway", ipv4Gateway()},
-        {"ipv4Dns", ipv4Dns()}
-    };
 }
 
 ConnectionSettingInfo ConnectionEditorModel::toSettingInfo() const

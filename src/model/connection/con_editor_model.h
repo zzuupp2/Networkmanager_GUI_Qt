@@ -14,8 +14,8 @@ class ConnectionEditorModel : public QObject
 
     // ========== 通用标识（只读或可编辑） ==========
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged)
-    Q_PROPERTY(QString uuid READ uuid CONSTANT)                       // 不可编辑
-    Q_PROPERTY(QString type READ type CONSTANT)                       // 连接类型（只读）
+    Q_PROPERTY(QString uuid READ uuid NOTIFY uuidChanged)             // 不可编辑（随加载数据变化）
+    Q_PROPERTY(QString type READ type NOTIFY typeChanged)             // 连接类型（只读，随加载数据变化）
     Q_PROPERTY(bool autoconnect READ autoconnect WRITE setAutoconnect NOTIFY autoconnectChanged)
     Q_PROPERTY(int autoconnectPriority READ autoconnectPriority WRITE setAutoconnectPriority NOTIFY autoconnectPriorityChanged)
     Q_PROPERTY(QString interfaceName READ interfaceName WRITE setInterfaceName NOTIFY interfaceNameChanged)
@@ -55,8 +55,6 @@ public:
     Q_INVOKABLE void reset();                        // 取消编辑，恢复到原始值
     Q_INVOKABLE bool setField(const QString &field, const QVariant &value); // 手动更新单个字段
     Q_INVOKABLE void applyPatch(const QVariantMap &patch);                  // 手动批量更新字段
-    Q_INVOKABLE QStringList editableFields() const;                         // 暴露给 QML 的可编辑字段清单
-    Q_INVOKABLE QVariantMap editableSnapshot() const;                       // 当前可编辑字段快照
     Q_INVOKABLE ConnectionSettingInfo toSettingInfo() const;      // 导出为结构体
     Q_INVOKABLE QVariantMap toSettingsMap() const;                // 导出为 NM 需要的 QVariantMap
 
@@ -106,6 +104,8 @@ public:
 
 signals:
     void idChanged();
+    void uuidChanged();
+    void typeChanged();
     void autoconnectChanged();
     void autoconnectPriorityChanged();
     void interfaceNameChanged();

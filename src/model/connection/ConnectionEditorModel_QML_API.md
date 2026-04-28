@@ -29,8 +29,6 @@
 - `reset()`
 - `setField(field: QString, value: QVariant) -> bool`
 - `applyPatch(patch: QVariantMap)`
-- `editableFields() -> QStringList`
-- `editableSnapshot() -> QVariantMap`
 - `toSettingInfo() -> ConnectionSettingInfo`
 - `toSettingsMap() -> QVariantMap`
 
@@ -39,3 +37,7 @@
 - `editor`（`ConnectionEditorModel*`）
 
 > 说明：本清单只整理 Editor 模型本身接口，不涉及 `ConnectionManager`/UI 绑定命名调整。
+>
+> 变更说明：
+> - `uuid`/`type` 不是 `CONSTANT`，为可通知只读属性（加载新数据时会触发刷新）
+> - 字段更新以 Q_PROPERTY setter 为主路径，`setField/applyPatch` 仅作为动态补丁入口并复用 setter
