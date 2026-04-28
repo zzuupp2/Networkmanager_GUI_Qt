@@ -58,7 +58,6 @@ private:
 private slots:
     void onActiveConnectionAdded(const QString &path);
     void onActiveConnectionRemoved(const QString &path);
-    void onWatchedActiveConnectionChanged();
 
 private:
     QHash<QString, RuntimeState> m_states;
