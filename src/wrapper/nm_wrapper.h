@@ -27,7 +27,6 @@ namespace Net {
         Q_PROPERTY(ApService* apService READ apService CONSTANT)
         Q_PROPERTY(ConnectionListModel* connectionListModel READ connectionListModel CONSTANT)
         Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
-        Q_PROPERTY(ConnectionManager* connectionManager READ connectionManager CONSTANT)
         Q_PROPERTY(ConnectionManager* manager READ manager CONSTANT)
         Q_PROPERTY(ConnectionEditorModel* editor READ editor CONSTANT)
         Q_PROPERTY(ConnectionRuntimeModel* runtimeModel READ runtimeModel CONSTANT)
@@ -46,7 +45,6 @@ namespace Net {
         ConnectionRuntimeModel* connectionRuntimeModel();
         ConnectionRuntimeModel* runtimeModel();
 
-        ConnectionManager* connectionManager();
         ConnectionManager* manager();
         ConnectionEditorModel* editor();
         QString currentUuid() const;

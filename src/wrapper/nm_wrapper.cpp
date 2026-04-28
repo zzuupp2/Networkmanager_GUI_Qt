@@ -71,10 +71,6 @@ namespace Net {
         return connectionRuntimeModel();
     }
 
-    ConnectionManager* NetworkManagerWrapper::connectionManager() {
-        return &m_connectionManager;
-    }
-
     ConnectionManager* NetworkManagerWrapper::manager() {
         return &m_connectionManager;
     }
