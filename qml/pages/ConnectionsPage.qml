@@ -7,6 +7,54 @@ import "../components"
 Item {
     id: root
     property string selectedUuid: ""
+    property string pendingUuid: ""
+    property var runtimeInfo: ({ active: false, ipv4: "", gateway: "", dns: [] })
+    onSelectedUuidChanged: refreshRuntime()
+
+    function applySelection(uuid) {
+        if (!uuid || uuid === selectedUuid)
+            return
+
+        selectedUuid = uuid
+        nm.editor.loadByUuid(uuid)
+        refreshRuntime()
+    }
+
+    function refreshRuntime() {
+        if (!selectedUuid) {
+            runtimeInfo = ({ active: false, ipv4: "", gateway: "", dns: [] })
+            return
+        }
+
+        runtimeInfo = nm.runtimeModel.getRuntimeByUuid(selectedUuid)
+    }
+
+    function ensureDefaultSelection() {
+        if (!listView.model || listView.count <= 0) {
+            selectedUuid = ""
+            refreshRuntime()
+            return
+        }
+
+        if (nm.editor.isModified)
+            return
+
+        if (!selectedUuid) {
+            applySelection(listView.model.uuidAt(0))
+            return
+        }
+
+        let exists = false
+        for (let i = 0; i < listView.count; ++i) {
+            if (listView.model.uuidAt(i) === selectedUuid) {
+                exists = true
+                break
+            }
+        }
+
+        if (!exists)
+            applySelection(listView.model.uuidAt(0))
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -52,10 +100,9 @@ Item {
 
                     model: nm.connectionListModel
 
-                    Component.onCompleted: {
-                            console.log("connectionListModel:", nm.connectionListModel)
-                            console.log("model count:", listView.count)
-                        }
+                    onCountChanged: ensureDefaultSelection()
+
+                    Component.onCompleted: ensureDefaultSelection()
 
                     delegate: Rectangle {
                         width: listView.width
@@ -73,10 +120,10 @@ Item {
                                 if (model.conUuid === selectedUuid)
                                     return
 
-                                if (checkUnsaved()) return
+                                if (checkUnsaved(model.conUuid))
+                                    return
 
-                                selectedUuid = model.conUuid
-                                nm.editor.loadByUuid(model.conUuid)
+                                applySelection(model.conUuid)
                             }
                         }
 
@@ -186,13 +233,13 @@ Item {
 
                             Label {
                                 text: "状态: " +
-                                      (nm.isActive(selectedUuid) ? "已连接" : "未连接")
-                                color: nm.isActive(selectedUuid) ? "green" : "#666"
+                                      (runtimeInfo.active ? "已连接" : "未连接")
+                                color: runtimeInfo.active ? "green" : "#666"
                             }
 
-                            Label { text: "IPv4: " + nm.getIpv4(selectedUuid) }
-                            Label { text: "网关: " + nm.getGateway(selectedUuid) }
-                            Label { text: "DNS: " + nm.getDns(selectedUuid) }
+                            Label { text: "IPv4: " + (runtimeInfo.ipv4 || "") }
+                            Label { text: "网关: " + (runtimeInfo.gateway || "") }
+                            Label { text: "DNS: " + ((runtimeInfo.dns || []).join(", ")) }
 
                             Item { Layout.fillHeight: true }
                         }
@@ -252,10 +299,11 @@ Item {
     // =====================================
     // 未保存提示
     // =====================================
-    function checkUnsaved() {
+    function checkUnsaved(nextUuid) {
         if (!nm.editor.isModified)
             return false
 
+        pendingUuid = nextUuid || ""
         confirmDialog.open()
         return true
     }
@@ -265,14 +313,24 @@ Item {
         modal: true
         title: "未保存更改"
 
-        standardButtons: Dialog.Yes | Dialog.No | Dialog.Cancel
+        standardButtons: Dialog.Yes | Dialog.No
 
         onAccepted: {
             nm.manager.apply(nm.editor.toSettingsMap(), nm.editor.isNew)
+            if (pendingUuid) {
+                const uuid = pendingUuid
+                pendingUuid = ""
+                applySelection(uuid)
+            }
         }
 
         onRejected: {
             nm.editor.reset()
+            if (pendingUuid) {
+                const uuid = pendingUuid
+                pendingUuid = ""
+                applySelection(uuid)
+            }
         }
     }
 }
