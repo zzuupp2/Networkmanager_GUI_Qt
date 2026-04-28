@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QSet>
 #include <QStringList>
+#include <NetworkManagerQt/ActiveConnection>
 
 namespace Net {
 
@@ -49,10 +50,18 @@ signals:
     void stateChanged(const QString &uuid);
 
 private:
+    void refreshActiveConnectionWatchers();
+    void attachActiveConnection(const QString &path);
+    void detachActiveConnection(const QString &path);
     void updateAll();
+
+private slots:
+    void onActiveConnectionAdded(const QString &path);
+    void onActiveConnectionRemoved(const QString &path);
 
 private:
     QHash<QString, RuntimeState> m_states;
+    QHash<QString, NetworkManager::ActiveConnection::Ptr> m_watchedActiveConnections;
 };
 
 }
