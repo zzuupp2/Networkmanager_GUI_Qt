@@ -1,6 +1,8 @@
 #include <QDebug>
+#include <QMetaType>
 
 #include "con_editor_model.h"
+#include "src/service/connection_manager.h"
 namespace Net {
 
 ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
@@ -14,6 +16,9 @@ ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
 
 void ConnectionEditorModel::loadFromSettingInfo(const ConnectionSettingInfo &info)
 {
+    const auto oldUuid = m_working.uuid;
+    const auto oldType = m_working.type;
+
     m_original = info;
     m_working = info;
 
@@ -26,6 +31,10 @@ void ConnectionEditorModel::loadFromSettingInfo(const ConnectionSettingInfo &inf
 
     // 通知所有属性变更，触发 QML 界面完全刷新
     emit idChanged();
+    if (oldUuid != m_working.uuid)
+        emit uuidChanged();
+    if (oldType != m_working.type)
+        emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -66,8 +75,29 @@ void ConnectionEditorModel::loadDefaults(const QString &type)
     // info.ipv6Method = "auto";
     info.interfaceName = "";
 
-    m_isNew = true;
     loadFromSettingInfo(info);
+    if (!m_isNew) {
+        m_isNew = true;
+        emit isNewChanged(true);
+    }
+}
+
+void ConnectionEditorModel::setConnectionManager(ConnectionManager *manager)
+{
+    m_manager = manager;
+}
+
+bool ConnectionEditorModel::loadByUuid(const QString &uuid)
+{
+    if (!m_manager || uuid.isEmpty())
+        return false;
+
+    auto info = m_manager->getConnectionSettingInfo(uuid);
+    if (info.uuid.isEmpty())
+        return false;
+
+    loadFromSettingInfo(info);
+    return true;
 }
 
 // ========== 操作 ==========
@@ -79,6 +109,8 @@ void ConnectionEditorModel::reset()
 
     // 刷新所有属性到原始值
     emit idChanged();
+    emit uuidChanged();
+    emit typeChanged();
     emit autoconnectChanged();
     emit autoconnectPriorityChanged();
     emit interfaceNameChanged();
@@ -97,6 +129,74 @@ void ConnectionEditorModel::reset()
     emit isModifiedChanged(false);
 
     emit editRejected();
+}
+
+bool ConnectionEditorModel::setField(const QString &field, const QVariant &value)
+{
+    if (field == "id") {
+        setId(value.toString());
+        return true;
+    }
+    if (field == "autoconnect") {
+        setAutoconnect(value.toBool());
+        return true;
+    }
+    if (field == "autoconnectPriority") {
+        setAutoconnectPriority(value.toInt());
+        return true;
+    }
+    if (field == "interfaceName") {
+        setInterfaceName(value.toString());
+        return true;
+    }
+    if (field == "ssid") {
+        setSsid(value.toString());
+        return true;
+    }
+    if (field == "wirelessSecurity") {
+        setWirelessSecurity(value.toString());
+        return true;
+    }
+    if (field == "wirelessPassword") {
+        setWirelessPassword(value.toString());
+        return true;
+    }
+    if (field == "mtu") {
+        setMtu(value.toInt());
+        return true;
+    }
+    if (field == "ipv4Method") {
+        setIpv4Method(value.toString());
+        return true;
+    }
+    if (field == "ipv4Address") {
+        setIpv4Address(value.toString());
+        return true;
+    }
+    if (field == "ipv4Gateway") {
+        setIpv4Gateway(value.toString());
+        return true;
+    }
+    if (field == "ipv4Dns") {
+        if (value.canConvert<QStringList>()) {
+            setIpv4Dns(value.toStringList());
+            return true;
+        }
+
+        if (value.typeId() == QMetaType::QString) {
+            setIpv4Dns(value.toString().split(',', Qt::SkipEmptyParts));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ConnectionEditorModel::applyPatch(const QVariantMap &patch)
+{
+    for (auto it = patch.constBegin(); it != patch.constEnd(); ++it) {
+        setField(it.key(), it.value());
+    }
 }
 
 ConnectionSettingInfo ConnectionEditorModel::toSettingInfo() const

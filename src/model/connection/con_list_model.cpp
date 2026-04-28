@@ -71,6 +71,24 @@ QString ConnectionListModel::uuidAt(int row) const
     return m_items[row].uuid;
 }
 
+bool ConnectionListModel::contains(const QString &uuid) const
+{
+    return m_index.contains(uuid);
+}
+
+QVariantMap ConnectionListModel::get(int row) const
+{
+    if (row < 0 || row >= m_items.size())
+        return {};
+
+    const auto &item = m_items[row];
+    return {
+        {"conName", item.name},
+        {"conUuid", item.uuid},
+        {"conActive", item.active}
+    };
+}
+
 void ConnectionListModel::reload()
 {
     beginResetModel();

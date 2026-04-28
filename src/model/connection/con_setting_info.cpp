@@ -114,11 +114,14 @@ ConnectionSettingInfo ConnectionSettingInfo::fromNMSettings(
         }
 
         if (info.ipv4Method == "manual") {
+            const auto addresses = ipv4->addresses();
 
             // 仅取第一个地址和网关
-            if (!ipv4->addresses().isEmpty()) {
-                const auto &addr = ipv4->addresses().first();
-                info.ipv4Address = addr.ip().toString() + "/" + QString::number(addr.prefixLength());
+            if (!addresses.isEmpty()) {
+                const auto &addr = addresses.first();
+                info.ipv4Address =
+                    addr.ip().toString() + "/" +
+                    QString::number(addr.prefixLength());
                 info.ipv4Gateway = addr.gateway().toString();
             }
 

@@ -47,6 +47,25 @@ QHash<int, QByteArray> ConnectionRuntimeModel::roleNames() const
     };
 }
 
+QVariantMap ConnectionRuntimeModel::getRuntimeByUuid(const QString &uuid) const
+{
+    RuntimeState st;
+    if (m_index.contains(uuid)) {
+        st = m_items[m_index.value(uuid)].st;
+    } else {
+        st = m_svc->state(uuid);
+    }
+
+    return {
+        {"uuid", uuid},
+        {"active", st.active},
+        {"activating", st.activating},
+        {"ipv4", st.ipv4},
+        {"gateway", st.gateway},
+        {"dns", st.dns}
+    };
+}
+
 void ConnectionRuntimeModel::onStateChanged(const QString &uuid)
 {
     auto st = m_svc->state(uuid);
