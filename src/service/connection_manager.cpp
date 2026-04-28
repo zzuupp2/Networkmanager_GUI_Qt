@@ -343,11 +343,6 @@ bool ConnectionManager::deactivate(const QString &uuid)
     return deactivateConnection(uuid);
 }
 
-ConnectionSettingInfo ConnectionManager::info(const QString &uuid) const
-{
-    return getConnectionSettingInfo(uuid);
-}
-
 // ======================= 私有辅助 =======================
 
 QString ConnectionManager::connectionPath(const QString &uuid) const

@@ -27,6 +27,7 @@
 ## QML 可调用方法（Q_INVOKABLE）
 
 - `reset()`
+- `loadByUuid(uuid: QString) -> bool`
 - `setField(field: QString, value: QVariant) -> bool`
 - `applyPatch(patch: QVariantMap)`
 - `toSettingInfo() -> ConnectionSettingInfo`

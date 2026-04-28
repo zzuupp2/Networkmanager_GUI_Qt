@@ -8,6 +8,8 @@
 
 namespace Net {
 
+class ConnectionManager;
+
 class ConnectionEditorModel : public QObject
 {
     Q_OBJECT
@@ -50,6 +52,8 @@ public:
     // ----- 数据加载 -----
     void loadFromSettingInfo(const ConnectionSettingInfo &info);
     void loadDefaults(const QString &type);          // 新建连接时调用，如 "802-11-wireless"
+    void setConnectionManager(ConnectionManager *manager);
+    Q_INVOKABLE bool loadByUuid(const QString &uuid);
 
     // ----- 操作 -----
     Q_INVOKABLE void reset();                        // 取消编辑，恢复到原始值
@@ -133,6 +137,7 @@ private:
 
     ConnectionSettingInfo m_original;   // 加载时的原始数据
     ConnectionSettingInfo m_working;    // 工作副本，所有 getter 都读取这里
+    ConnectionManager *m_manager = nullptr;
     bool m_isModified = false;
     bool m_isNew = false;
 };

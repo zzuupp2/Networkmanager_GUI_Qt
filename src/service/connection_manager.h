@@ -24,7 +24,7 @@ public:
     Q_INVOKABLE QString addConnection(const NMVariantMapMap &settings);
     Q_INVOKABLE bool updateConnection(const QString &uuid, const NMVariantMapMap &newSettings);
     Q_INVOKABLE bool deleteConnection(const QString &uuid);
-    Q_INVOKABLE ConnectionSettingInfo getConnectionSettingInfo(const QString &uuid) const;
+    ConnectionSettingInfo getConnectionSettingInfo(const QString &uuid) const;
 
     // ====== 激活/断开 ======
     Q_INVOKABLE bool activateConnection(const QString &uuid);
@@ -35,7 +35,6 @@ public:
     Q_INVOKABLE bool remove(const QString &uuid);
     Q_INVOKABLE bool activate(const QString &uuid);
     Q_INVOKABLE bool deactivate(const QString &uuid);
-    Q_INVOKABLE ConnectionSettingInfo info(const QString &uuid) const;
 
 signals:
     void connectionAdded(const QString &uuid);

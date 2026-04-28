@@ -7,7 +7,6 @@
 - `addConnection(settings: NMVariantMapMap) -> QString`
 - `updateConnection(uuid: QString, newSettings: NMVariantMapMap) -> bool`
 - `deleteConnection(uuid: QString) -> bool`
-- `getConnectionSettingInfo(uuid: QString) -> ConnectionSettingInfo`
 - `activateConnection(uuid: QString) -> bool`
 - `deactivateConnection(uuid: QString) -> bool`
 
@@ -19,4 +18,3 @@
 - `remove(uuid: QString) -> bool`
 - `activate(uuid: QString) -> bool`
 - `deactivate(uuid: QString) -> bool`
-- `info(uuid: QString) -> ConnectionSettingInfo`

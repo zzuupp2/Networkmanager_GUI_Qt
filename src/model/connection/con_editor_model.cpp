@@ -2,6 +2,7 @@
 #include <QMetaType>
 
 #include "con_editor_model.h"
+#include "src/service/connection_manager.h"
 namespace Net {
 
 ConnectionEditorModel::ConnectionEditorModel(QObject *parent)
@@ -77,6 +78,24 @@ void ConnectionEditorModel::loadDefaults(const QString &type)
         m_isNew = true;
         emit isNewChanged(true);
     }
+}
+
+void ConnectionEditorModel::setConnectionManager(ConnectionManager *manager)
+{
+    m_manager = manager;
+}
+
+bool ConnectionEditorModel::loadByUuid(const QString &uuid)
+{
+    if (!m_manager || uuid.isEmpty())
+        return false;
+
+    auto info = m_manager->getConnectionSettingInfo(uuid);
+    if (info.uuid.isEmpty())
+        return false;
+
+    loadFromSettingInfo(info);
+    return true;
 }
 
 // ========== 操作 ==========

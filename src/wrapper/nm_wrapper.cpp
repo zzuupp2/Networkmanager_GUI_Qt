@@ -17,6 +17,7 @@ namespace Net {
 
         // initConnectionRuntimeModel();
 
+        m_editor.setConnectionManager(&m_connectionManager);
         initDeviceService();
         // initConSetService();
         // m_conService.bindModel(&m_conModel);
