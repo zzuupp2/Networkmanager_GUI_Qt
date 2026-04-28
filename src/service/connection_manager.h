@@ -21,20 +21,20 @@ public:
     explicit ConnectionManager(QObject *parent = nullptr);
 
     // ====== 配置管理 ======
-    Q_INVOKABLE QString addConnection(const NMVariantMapMap &settings);
-    Q_INVOKABLE bool updateConnection(const QString &uuid, const NMVariantMapMap &newSettings);
-    Q_INVOKABLE bool deleteConnection(const QString &uuid);
+    Q_INVOKABLE void addConnection(const NMVariantMapMap &settings);
+    Q_INVOKABLE void updateConnection(const QString &uuid, const NMVariantMapMap &newSettings);
+    Q_INVOKABLE void deleteConnection(const QString &uuid);
     ConnectionSettingInfo getConnectionSettingInfo(const QString &uuid) const;
 
     // ====== 激活/断开 ======
-    Q_INVOKABLE bool activateConnection(const QString &uuid);
-    Q_INVOKABLE bool deactivateConnection(const QString &uuid);
+    Q_INVOKABLE void activateConnection(const QString &uuid);
+    Q_INVOKABLE void deactivateConnection(const QString &uuid);
 
     // ====== 简化命名（供 QML/Wrapper 使用） ======
-    Q_INVOKABLE QString apply(const QVariantMap &settings, bool isNew, const QString &uuid = QString());
-    Q_INVOKABLE bool remove(const QString &uuid);
-    Q_INVOKABLE bool activate(const QString &uuid);
-    Q_INVOKABLE bool deactivate(const QString &uuid);
+    Q_INVOKABLE void apply(const QVariantMap &settings, bool isNew, const QString &uuid = QString());
+    Q_INVOKABLE void remove(const QString &uuid);
+    Q_INVOKABLE void activate(const QString &uuid);
+    Q_INVOKABLE void deactivate(const QString &uuid);
 
 signals:
     void connectionAdded(const QString &uuid);

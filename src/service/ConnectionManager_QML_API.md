@@ -4,17 +4,21 @@
 
 ## 原始接口（兼容保留）
 
-- `addConnection(settings: NMVariantMapMap) -> QString`
-- `updateConnection(uuid: QString, newSettings: NMVariantMapMap) -> bool`
-- `deleteConnection(uuid: QString) -> bool`
-- `activateConnection(uuid: QString) -> bool`
-- `deactivateConnection(uuid: QString) -> bool`
+- `addConnection(settings: NMVariantMapMap) -> void`
+- `updateConnection(uuid: QString, newSettings: NMVariantMapMap) -> void`
+- `deleteConnection(uuid: QString) -> void`
+- `activateConnection(uuid: QString) -> void`
+- `deactivateConnection(uuid: QString) -> void`
 
 ## 简化接口（推荐 QML 使用）
 
-- `apply(settings: QVariantMap, isNew: bool, uuid: QString = "") -> QString`
-  - `isNew=true` 时执行新增并返回新 UUID
-  - `isNew=false` 时执行更新并返回目标 UUID
-- `remove(uuid: QString) -> bool`
-- `activate(uuid: QString) -> bool`
-- `deactivate(uuid: QString) -> bool`
+- `apply(settings: QVariantMap, isNew: bool, uuid: QString = "") -> void`
+- `remove(uuid: QString) -> void`
+- `activate(uuid: QString) -> void`
+- `deactivate(uuid: QString) -> void`
+
+## 结果通知（异步）
+
+- `operationCompleted(uuid: QString, success: bool)`
+- `errorOccurred(uuid: QString, error: QString)`
+- `connectionAdded/connectionUpdated/connectionRemoved`
