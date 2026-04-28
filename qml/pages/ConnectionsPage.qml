@@ -14,6 +14,21 @@ Item {
             refreshRuntime()
         }
     }
+    Connections {
+        target: nm.runtimeModel
+        function onDataChanged() {
+            refreshRuntime()
+        }
+        function onModelReset() {
+            refreshRuntime()
+        }
+        function onRowsInserted() {
+            refreshRuntime()
+        }
+        function onRowsRemoved() {
+            refreshRuntime()
+        }
+    }
 
     function applySelection(uuid) {
         if (!uuid || uuid === nm.currentUuid)
