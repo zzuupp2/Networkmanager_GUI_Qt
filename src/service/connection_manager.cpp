@@ -303,6 +303,51 @@ bool ConnectionManager::deactivateConnection(const QString &uuid)
     return true;
 }
 
+QString ConnectionManager::apply(const QVariantMap &settings, bool isNew, const QString &uuid)
+{
+    NMVariantMapMap nmSettings;
+    for (auto it = settings.constBegin(); it != settings.constEnd(); ++it) {
+        nmSettings.insert(it.key(), it.value().toMap());
+    }
+
+    if (isNew) {
+        return addConnection(nmSettings);
+    }
+
+    QString targetUuid = uuid;
+    if (targetUuid.isEmpty()) {
+        const auto connMap = settings.value("connection").toMap();
+        targetUuid = connMap.value("uuid").toString();
+    }
+
+    if (targetUuid.isEmpty()) {
+        emit errorOccurred(QString(), "Missing uuid for update");
+        return {};
+    }
+
+    return updateConnection(targetUuid, nmSettings) ? targetUuid : QString();
+}
+
+bool ConnectionManager::remove(const QString &uuid)
+{
+    return deleteConnection(uuid);
+}
+
+bool ConnectionManager::activate(const QString &uuid)
+{
+    return activateConnection(uuid);
+}
+
+bool ConnectionManager::deactivate(const QString &uuid)
+{
+    return deactivateConnection(uuid);
+}
+
+ConnectionSettingInfo ConnectionManager::info(const QString &uuid) const
+{
+    return getConnectionSettingInfo(uuid);
+}
+
 // ======================= 私有辅助 =======================
 
 QString ConnectionManager::connectionPath(const QString &uuid) const

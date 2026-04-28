@@ -62,6 +62,14 @@ namespace Net {
         return &m_connectionManager;
     }
 
+    ConnectionManager* NetworkManagerWrapper::manager() {
+        return &m_connectionManager;
+    }
+
+    ConnectionEditorModel* NetworkManagerWrapper::editor() {
+        return &m_editor;
+    }
+
     // ConnectionSettingModel* NetworkManagerWrapper::connectionSettingModel() {
     //     return &m_conSettingModel;
     // }

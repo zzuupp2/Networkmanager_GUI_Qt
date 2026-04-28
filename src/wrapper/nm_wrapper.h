@@ -8,6 +8,7 @@
 // #include "src/model/connection/con_setting_model.h"
 #include "src/model/connection/con_list_model.h"
 #include "src/model/connection/con_runtime_model.h"
+#include "src/model/connection/con_editor_model.h"
 #include "src/service/ap_service.h"
 #include "src/service/device_service.h"
 // #include "src/service/con_setting_service.h"
@@ -26,6 +27,8 @@ namespace Net {
         Q_PROPERTY(ApService* apService READ apService CONSTANT)
         Q_PROPERTY(ConnectionListModel* connectionListModel READ connectionListModel CONSTANT)
         Q_PROPERTY(ConnectionManager* connectionManager READ connectionManager CONSTANT)
+        Q_PROPERTY(ConnectionManager* manager READ manager CONSTANT)
+        Q_PROPERTY(ConnectionEditorModel* editor READ editor CONSTANT)
         // Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
 
     public:
@@ -41,6 +44,8 @@ namespace Net {
         ConnectionRuntimeModel* connectionRuntimeModel();
 
         ConnectionManager* connectionManager();
+        ConnectionManager* manager();
+        ConnectionEditorModel* editor();
         // ConnectionSettingModel* connectionSettingModel();
         // QObject* apService();
         // Q_INVOKABLE void activateConnection(const QString &uuid);
@@ -65,6 +70,7 @@ namespace Net {
         ConnectionListModel m_connectionList;
 
         ConnectionManager m_connectionManager;
+        ConnectionEditorModel m_editor;
         // ConnectionSettingService m_conSettingService;
         // ConnectionSettingModel m_conSettingModel;
     };

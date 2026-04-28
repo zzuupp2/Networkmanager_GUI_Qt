@@ -30,6 +30,13 @@ public:
     Q_INVOKABLE bool activateConnection(const QString &uuid);
     Q_INVOKABLE bool deactivateConnection(const QString &uuid);
 
+    // ====== 简化命名（供 QML/Wrapper 使用） ======
+    Q_INVOKABLE QString apply(const QVariantMap &settings, bool isNew, const QString &uuid = QString());
+    Q_INVOKABLE bool remove(const QString &uuid);
+    Q_INVOKABLE bool activate(const QString &uuid);
+    Q_INVOKABLE bool deactivate(const QString &uuid);
+    Q_INVOKABLE ConnectionSettingInfo info(const QString &uuid) const;
+
 signals:
     void connectionAdded(const QString &uuid);
     void connectionRemoved(const QString &uuid);
