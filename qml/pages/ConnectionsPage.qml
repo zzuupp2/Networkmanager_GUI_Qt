@@ -6,32 +6,35 @@ import "../components"
 
 Item {
     id: root
-    property string selectedUuid: ""
     property string pendingUuid: ""
     property var runtimeInfo: ({ active: false, ipv4: "", gateway: "", dns: [] })
-    onSelectedUuidChanged: refreshRuntime()
+    Connections {
+        target: nm
+        function onCurrentUuidChanged() {
+            refreshRuntime()
+        }
+    }
 
     function applySelection(uuid) {
-        if (!uuid || uuid === selectedUuid)
+        if (!uuid || uuid === nm.currentUuid)
             return
 
-        selectedUuid = uuid
-        nm.editor.loadByUuid(uuid)
+        nm.selectConnection(uuid)
         refreshRuntime()
     }
 
     function refreshRuntime() {
-        if (!selectedUuid) {
+        if (!nm.currentUuid) {
             runtimeInfo = ({ active: false, ipv4: "", gateway: "", dns: [] })
             return
         }
 
-        runtimeInfo = nm.runtimeModel.getRuntimeByUuid(selectedUuid)
+        runtimeInfo = nm.runtimeModel.getRuntimeByUuid(nm.currentUuid)
     }
 
     function ensureDefaultSelection() {
         if (!listView.model || listView.count <= 0) {
-            selectedUuid = ""
+            nm.currentUuid = ""
             refreshRuntime()
             return
         }
@@ -39,26 +42,10 @@ Item {
         if (nm.editor.isModified)
             return
 
-        if (!selectedUuid) {
-            const firstItem = listView.model.get(0)
-            if (firstItem && firstItem.conUuid)
-                applySelection(firstItem.conUuid)
-            return
-        }
-
-        let exists = false
-        for (let i = 0; i < listView.count; ++i) {
-            const rowItem = listView.model.get(i)
-            if (rowItem && rowItem.conUuid === selectedUuid) {
-                exists = true
-                break
-            }
-        }
-
-        if (!exists) {
-            const firstItem = listView.model.get(0)
-            if (firstItem && firstItem.conUuid)
-                applySelection(firstItem.conUuid)
+        if (!nm.currentUuid || !nm.hasConnection(nm.currentUuid)) {
+            const firstUuid = nm.firstConnectionUuid()
+            if (firstUuid)
+                applySelection(firstUuid)
         }
     }
 
@@ -92,7 +79,7 @@ Item {
                     onClicked: {
                         if (checkUnsaved()) return
                         nm.editor.loadDefaults("802-11-wireless")
-                        selectedUuid = ""
+                        nm.currentUuid = ""
                     }
                 }
 
@@ -115,7 +102,7 @@ Item {
                         height: 60
                         radius: 6
 
-                        property bool selected: model.conUuid === selectedUuid
+                        property bool selected: model.conUuid === nm.currentUuid
                         color: selected ? "#d0eaff" : "#f5f5f5"
 
                         border.color: selected ? "#3399ff" : "#ddd"
@@ -123,7 +110,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (model.conUuid === selectedUuid)
+                                if (model.conUuid === nm.currentUuid)
                                     return
 
                                 if (checkUnsaved(model.conUuid))
@@ -186,11 +173,11 @@ Item {
                     text: "删除连接"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
-                    enabled: selectedUuid !== ""
+                    enabled: nm.currentUuid !== ""
 
                     onClicked: {
-                        nm.manager.remove(selectedUuid)
-                        selectedUuid = ""
+                        nm.manager.remove(nm.currentUuid)
+                        nm.currentUuid = ""
                     }
                 }
             }

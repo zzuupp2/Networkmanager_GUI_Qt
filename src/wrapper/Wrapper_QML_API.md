@@ -12,6 +12,13 @@
 - `editor` -> `ConnectionEditorModel*`
 - `runtimeModel` -> `ConnectionRuntimeModel*`（`connectionRuntimeModel` 的简化别名）
   - 支持 `getRuntimeByUuid(uuid)`，便于跟随左侧连接选项切换读取单项运行时信息
+- `currentUuid: QString`（统一选中项状态）
+
+## 统一选择入口（推荐）
+
+- `selectConnection(uuid)`：统一处理“选中 + editor 加载”
+- `firstConnectionUuid()`：取列表第一项 uuid（用于默认选中）
+- `hasConnection(uuid)`：校验当前 uuid 是否仍有效
 
 ## 命名建议
 

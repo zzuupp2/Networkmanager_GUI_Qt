@@ -31,6 +31,7 @@ namespace Net {
         Q_PROPERTY(ConnectionManager* manager READ manager CONSTANT)
         Q_PROPERTY(ConnectionEditorModel* editor READ editor CONSTANT)
         Q_PROPERTY(ConnectionRuntimeModel* runtimeModel READ runtimeModel CONSTANT)
+        Q_PROPERTY(QString currentUuid READ currentUuid WRITE setCurrentUuid NOTIFY currentUuidChanged)
 
     public:
         explicit NetworkManagerWrapper(QObject *parent = nullptr);
@@ -48,6 +49,12 @@ namespace Net {
         ConnectionManager* connectionManager();
         ConnectionManager* manager();
         ConnectionEditorModel* editor();
+        QString currentUuid() const;
+        void setCurrentUuid(const QString &uuid);
+
+        Q_INVOKABLE void selectConnection(const QString &uuid);
+        Q_INVOKABLE QString firstConnectionUuid() const;
+        Q_INVOKABLE bool hasConnection(const QString &uuid) const;
         // ConnectionSettingModel* connectionSettingModel();
         // QObject* apService();
         // Q_INVOKABLE void activateConnection(const QString &uuid);
@@ -73,7 +80,11 @@ namespace Net {
 
         ConnectionManager m_connectionManager;
         ConnectionEditorModel m_editor;
+        QString m_currentUuid;
         // ConnectionSettingService m_conSettingService;
         // ConnectionSettingModel m_conSettingModel;
+
+    signals:
+        void currentUuidChanged();
     };
 }

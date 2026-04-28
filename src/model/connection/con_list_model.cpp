@@ -71,6 +71,11 @@ QString ConnectionListModel::uuidAt(int row) const
     return m_items[row].uuid;
 }
 
+bool ConnectionListModel::contains(const QString &uuid) const
+{
+    return m_index.contains(uuid);
+}
+
 QVariantMap ConnectionListModel::get(int row) const
 {
     if (row < 0 || row >= m_items.size())
