@@ -26,7 +26,7 @@ ConnectionSettingInfo ConnectionSettingInfo::fromNMSettings(
     info.type = NetworkManager::ConnectionSettings::typeAsString(settings->connectionType());
     info.typeEnum = settings->connectionType();
     info.active = active;
-    info.timestamp = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(settings->timestamp()));
+    info.timestamp = settings->timestamp();
 
     // ===== 通用设置 =====
     info.autoconnect = settings->autoconnect();
