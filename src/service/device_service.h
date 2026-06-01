@@ -33,8 +33,9 @@ private:
 private:
     QHash<QString, NetworkManager::Device::Ptr> m_devices;
     QSet<QString> m_watchedDevices;
-
-    // ⭐ 每个设备一个防抖 timer
     QHash<QString, QTimer*> m_updateTimers;
+
+    // 原因冻结：防止瞬态覆盖真实业务原因
+    QHash<QString, NetworkManager::Device::StateChangeReason> m_frozenReasons;
 };
 }

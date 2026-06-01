@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QHash>
+#include <QUuid>
 #include <QVariantMap>
 #include <NetworkManagerQt/Manager>
 #include <NetworkManagerQt/Connection>
@@ -20,21 +21,20 @@ class ConnectionManager : public QObject
 public:
     explicit ConnectionManager(QObject *parent = nullptr);
 
-    // ====== 配置管理 ======
     Q_INVOKABLE void addConnection(const NMVariantMapMap &settings);
-    Q_INVOKABLE void updateConnection(const QString &uuid, const NMVariantMapMap &newSettings);
+    Q_INVOKABLE void updateConnection(const QString &uuid, const ConnectionSettingInfo &info);
     Q_INVOKABLE void deleteConnection(const QString &uuid);
-    ConnectionSettingInfo getConnectionSettingInfo(const QString &uuid) const;
-
-    // ====== 激活/断开 ======
     Q_INVOKABLE void activateConnection(const QString &uuid);
     Q_INVOKABLE void deactivateConnection(const QString &uuid);
+    ConnectionSettingInfo getConnectionSettingInfo(const QString &uuid);
 
-    // ====== 简化命名（供 QML/Wrapper 使用） ======
-    Q_INVOKABLE void apply(const QVariantMap &settings, bool isNew, const QString &uuid = QString());
-    Q_INVOKABLE void remove(const QString &uuid);
-    Q_INVOKABLE void activate(const QString &uuid);
-    Q_INVOKABLE void deactivate(const QString &uuid);
+    Q_INVOKABLE void createAndActivateWifiConnection(
+        const QString &ssid,
+        const QString &password,
+        const QString &security = "wpa-psk",
+        const QString &iface = QString());
+
+    Q_INVOKABLE void apply(const ConnectionSettingInfo &info, bool isNew, const QString &uuid = QString());
 
 signals:
     void connectionAdded(const QString &uuid);
@@ -44,12 +44,8 @@ signals:
     void errorOccurred(const QString &uuid, const QString &error);
 
 private:
-    // QHash<QString, QPair<QString, bool>> m_savedDevAutoConnect;
-    // QHash<QString, QList<QPair<QString, bool>>> m_savedDevAutoConnect;
+    void addAndActivateConnection(const NMVariantMapMap &settings);
     QHash<QString, QHash<QString, bool>> m_savedDevAutoConnect;
-    QString connectionPath(const QString &uuid) const;
-    // NetworkManager::Device::Ptr deviceForActiveConnection(const QString &devUuid) const;
-    // void setDeviceAutoconnect(const QString &uuid, bool setEnabled);
 };
 
 } // namespace Net

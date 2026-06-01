@@ -18,10 +18,25 @@ namespace Net {
             NameRole = Qt::UserRole + 1,
             TypeRole,
             TypeEnumRole,
+            HwAddrRole,
             MtuRole,
 
             StateRole,
+            StateSummaryRole,
             StateReasonRole,
+            StateEnumRole,
+
+            ActiveConRole,
+
+            DriverRole,
+            DriverVerRole,
+            FirmwareRole,
+
+
+            BitRateRole,
+            CarrierRole,
+            ActiveSsidRole,
+            SignalRole,
         };
 
         int rowCount(const QModelIndex &parent = QModelIndex()) const override;

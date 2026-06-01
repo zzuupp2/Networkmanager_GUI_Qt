@@ -20,7 +20,13 @@ public:
         SsidRole = Qt::UserRole + 1,
         StrengthRole,
         SecurityRole,
-        ConnectedRole
+        ConnectedRole,
+        BandRole,
+        BssidRole,
+        SecurityTypeRole,
+        BandwidthRole,
+        ActiveConnectionUuidRole,
+        SavedConnectionUuidRole
     };
     Q_ENUM(Roles)
 
@@ -34,6 +40,7 @@ private:
 
     // 当前 AP 列表
     QList<NetworkManager::AccessPoint::Ptr> m_aps;
+    QHash<QString, QString> m_ssidToSavedUuid;
 
 private slots:
     // 从 Service 刷新数据

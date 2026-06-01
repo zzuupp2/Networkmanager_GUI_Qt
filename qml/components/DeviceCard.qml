@@ -8,25 +8,38 @@ Rectangle {
 
     property string devName: ""
     property string devType: ""
-    property string devMac: ""
+    property string devHwAddr: ""
     property int devMtu: -1
 
     property string devState: ""
-    property string stateReason: ""
+    property string devStateSummary: ""
+    property int devStateEnum: 0  // NetworkManager::Device::State enum
 
-    property string ipv4Add: ""
-    property string ipv4Gateway: ""
-    property string ipv4Dns: ""
-    property string ipv6Add: ""
-    property string curCon: ""
+    property string curConnection: ""
 
-    property string wiredOrWireless: ""
-
-    signal showReason(string msg)
+    signal showDetail()
 
     radius: 10
     border.color: "#dddddd"
-    color: devState === "Activated" ? "#e8f5e9" : "#f5f5f5"
+
+    // 根据实际 NM Device::State 枚举值着色
+    readonly property var stateColors: ({
+        0:   "#f5f5f5",  // Unknown
+        10:  "#ffe0b2",  // Unmanaged
+        20:  "#ffcdd2",  // Unavailable
+        30:  "#bbdefb",  // Disconnected
+        40:  "#fff9c4",  // Preparing
+        50:  "#fff9c4",  // ConfiguringHardware
+        60:  "#fff9c4",  // NeedAuth
+        70:  "#fff9c4",  // ConfiguringIp
+        80:  "#fff9c4",  // CheckingIp
+        90:  "#fff9c4",  // WaitingForSecondaries
+        100: "#c8e6c9",  // Activated
+        110: "#ffe0b2",  // Deactivating
+        120: "#ffcdd2",  // Failed
+    })
+
+    color: stateColors[devStateEnum] || "#f5f5f5"
 
     implicitHeight: content.implicitHeight + 16
 
@@ -56,110 +69,77 @@ Rectangle {
             }
         }
 
-        // ===== 信息区域（两列结构）=====
-        RowLayout {
+        // ===== 信息区域 =====
+        ColumnLayout {
             Layout.fillWidth: true
-            spacing: 20
+            spacing: 3
 
-            // ================= 左信息列 =================
-            ColumnLayout {
+            // 接口名 + 状态标签
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: 3
+                spacing: 8
 
-                // 名称 + 状态
-                RowLayout {
+                Label {
+                    text: devName
+                    font.bold: true
                     Layout.fillWidth: true
+                    color: "#333"
+                }
+
+                Rectangle {
+                    radius: 4
+                    readonly property var badgeColors: ({
+                        0:   "#9e9e9e",  // Unknown — 灰
+                        10:  "#ff9800",  // Unmanaged — 橙
+                        20:  "#f44336",  // Unavailable — 红
+                        30:  "#2196f3",  // Disconnected — 蓝
+                        40:  "#ff9800",  // Preparing — 橙
+                        50:  "#ff9800",  // ConfiguringHardware — 橙
+                        60:  "#ff9800",  // NeedAuth — 橙
+                        70:  "#ff9800",  // ConfiguringIp — 橙
+                        80:  "#ff9800",  // CheckingIp — 橙
+                        90:  "#ff9800",  // WaitingForSecondaries — 橙
+                        100: "#4caf50",  // Activated — 绿
+                        110: "#ff9800",  // Deactivating — 橙
+                        120: "#f44336",  // Failed — 红
+                    })
+                    color: badgeColors[devStateEnum] || "#9e9e9e"
+                    height: 22
+                    implicitWidth: stateLabel.implicitWidth + 12
 
                     Label {
-                        text: devName
+                        id: stateLabel
+                        anchors.centerIn: parent
+                        text: devStateSummary || devState
+                        color: "white"
+                        font.pixelSize: 11
                         font.bold: true
-                        Layout.fillWidth: true
-                        color: "#333"
                     }
-
-                  //  Label {
-                  //      text: devState
-                  //      color: devState === "Activated" ? "green" : "#666"
-                  //  }
-
-                }
-
-                // MAC
-                Label {
-                    visible: devMac !== ""
-                    text: "MAC: " + devMac
-                    font.pixelSize: 12
-                    color: "#777"
-                }
-
-                Label {
-                    visible: devMtu !== -1
-                    text: "MTU: " + devMtu
-                    font.pixelSize: 12
-                    color: "#777"
-                }
-
-                // 当前连接
-                Label {
-                    visible: curCon !== ""
-                    text: "连接: " + curCon
-                    font.pixelSize: 12
-                    color: "#777"
-                }
-
-                // 设备特有信息
-                RowLayout {
-                    spacing: 10
-
-                    Label {
-                        text: wiredOrWireless
-                        font.pixelSize: 12
-                        color: "#777"
-                    }
-
                 }
             }
 
+            // MAC 地址
+            Label {
+                visible: devHwAddr !== ""
+                text: "MAC: " + devHwAddr
+                font.pixelSize: 12
+                color: "#777"
+            }
 
-            // ================= 右信息列（网络） =================
-            ColumnLayout {
-                Layout.preferredWidth: 200
-                Layout.alignment: Qt.AlignTop
-                spacing: 3
-
-                Label {
-                    visible: ipv4Add !== ""
-                    text: "IPv4: " + ipv4Add
-                    font.pixelSize: 12
-                    color: "#555"
-                }
-
-                Label {
-                    visible: ipv4Gateway !== ""
-                    text: "GW: " + ipv4Gateway
-                    font.pixelSize: 11
-                    color: "#777"
-                }
-
-                Label {
-                    visible: ipv4Dns !== ""
-                    text: "DNS: " + ipv4Dns
-                    font.pixelSize: 11
-                    color: "#777"
-                }
+            // 当前连接
+            Label {
+                visible: curConnection !== ""
+                text: "连接: " + curConnection
+                font.pixelSize: 12
+                color: "#777"
             }
         }
 
-        Button {
-            visible: stateReason !== ""
-            text: "原因"
-            onClicked: root.showReason(stateReason)
-        }
-        // ===== 右侧按钮 =====
+        // ===== 详情按钮 =====
         Button {
             Layout.alignment: Qt.AlignVCenter
-            text: "添加连接"
-            onClicked: console.log("TODO")
+            text: "详情"
+            onClicked: root.showDetail()
         }
     }
 }

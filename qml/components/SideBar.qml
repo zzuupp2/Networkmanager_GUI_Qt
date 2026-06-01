@@ -2,31 +2,45 @@ import QtQuick
 import QtQuick.Controls
 
 Item {
-
     signal pageSelected(int index)
 
+    property int currentIndex: 0
+
     Rectangle {
-        color: "#2c3e50"
+        color: "#494856"
         anchors.fill: parent
+        radius: 6
 
         ListView {
             anchors.fill: parent
-            anchors.margins: 5   // 留一点边距更好看
-            spacing: 10
+            anchors.margins: 8
+            spacing: 6
             model: ["设备", "WiFi", "已保存网络"]
 
             delegate: ItemDelegate {
                 width: parent.width
-                text: modelData
+                height: 44
 
-                // 👉 让文字在深色背景上可见
-                contentItem: Text {
-                    text: modelData
-                    color: "white"
-                    verticalAlignment: Text.AlignVCenter
+                background: Rectangle {
+                    radius: 6
+                    color: {
+                        if (currentIndex === index) return "#39d7b0"
+                        if (hovered) return "#52A08D"
+                        return "transparent"
+                    }
                 }
 
-                onClicked:() => {
+                contentItem: Text {
+                    text: modelData
+                    color: currentIndex === index ? "#ffffff" : "#b0bec5"
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: 15
+                    font.bold: currentIndex === index
+                }
+
+                onClicked: {
+                    currentIndex = index
                     pageSelected(index)
                 }
             }

@@ -15,6 +15,9 @@ public:
     QList<NetworkManager::AccessPoint::Ptr> accessPoints() const;
     NetworkManager::AccessPoint::Ptr activeAccessPoint() const;
 
+    QString activeConnectionUuid() const;
+    QString savedConnectionUuidForSsid(const QString &ssid) const;
+
     Q_INVOKABLE void requestScan(bool force);
     Q_INVOKABLE void setScanEnable(bool enable);
 

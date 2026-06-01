@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QDateTime>
 #include <QHash>
 #include <QVariantMap>
 
@@ -12,7 +13,8 @@ struct ConnectionItem
 {
     QString name;
     QString uuid;
-    bool active = false;
+    int activeState = 0;
+    QDateTime lastConnection;
 };
 
 class ConnectionListModel : public QAbstractListModel
@@ -23,7 +25,8 @@ public:
     enum Roles {
         NameRole = Qt::UserRole + 1,
         UuidRole,
-        ActiveRole
+        ActiveStateRole,
+        LastConnectionRole
     };
 
     explicit ConnectionListModel(ConnectionRuntimeService *runtime,
@@ -36,9 +39,13 @@ public:
     Q_INVOKABLE QString uuidAt(int row) const;
     Q_INVOKABLE bool contains(const QString &uuid) const;
     Q_INVOKABLE QVariantMap get(int row) const;
+    void removeUuid(const QString &uuid);
 
 public slots:
     void reload();
+
+signals:
+    void connectionsReloaded(const QStringList &uuids);
 
 private slots:
     void onRuntimeChanged(const QString &uuid);

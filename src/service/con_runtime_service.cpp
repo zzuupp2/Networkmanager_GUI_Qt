@@ -3,6 +3,12 @@
 #include <NetworkManagerQt/Manager>
 #include <NetworkManagerQt/ActiveConnection>
 #include <NetworkManagerQt/IpConfig>
+#include <NetworkManagerQt/Device>
+#include <NetworkManagerQt/WiredDevice>
+#include <NetworkManagerQt/WirelessDevice>
+#include <NetworkManagerQt/AccessPoint>
+
+#include "src/utils/network_utils.h"
 
 using namespace Net;
 
@@ -36,7 +42,15 @@ ConnectionRuntimeService::ConnectionRuntimeService(QObject *parent)
 
 RuntimeState ConnectionRuntimeService::state(const QString &uuid) const
 {
-    return m_states.value(uuid);
+    auto it = m_states.find(uuid);
+    if (it != m_states.end())
+        return *it;
+
+    RuntimeState st;
+    auto rit = m_stateReasons.find(uuid);
+    if (rit != m_stateReasons.end())
+        st.stateReason = *rit;
+    return st;
 }
 
 void ConnectionRuntimeService::refreshActiveConnectionWatchers()
@@ -69,6 +83,14 @@ void ConnectionRuntimeService::attachActiveConnection(const QString &path)
                      &NetworkManager::ActiveConnection::stateChanged,
                      this,
                      [this] { updateAll(); });
+
+    QObject::connect(ac.data(),
+                     &NetworkManager::ActiveConnection::stateChangedReason,
+                     this,
+                     [this, uuid = ac->uuid()](NetworkManager::ActiveConnection::State state,
+                                                NetworkManager::ActiveConnection::Reason reason) {
+                         m_stateReasons[uuid] = static_cast<int>(reason);
+                     });
 
     QObject::connect(ac.data(),
                      &NetworkManager::ActiveConnection::ipV4ConfigChanged,
@@ -105,17 +127,16 @@ void ConnectionRuntimeService::updateAll()
     refreshActiveConnectionWatchers();
     QHash<QString, RuntimeState> newStates;
 
-    // ===== activating =====
     auto activating = NetworkManager::activatingConnection();
     if (activating && activating->isValid()) {
 
         const QString uuid = activating->uuid();
         RuntimeState &st = newStates[uuid];
-        st.activating = true;
+        st.activeState = static_cast<int>(activating->state());
+        st.stateReason = m_stateReasons.value(uuid, 0);
 
     }
 
-    // ===== active =====
     for (const auto &ac : NetworkManager::activeConnections()) {
 
         if (!ac || !ac->isValid())
@@ -123,14 +144,17 @@ void ConnectionRuntimeService::updateAll()
 
         QString uuid = ac->uuid();
         RuntimeState st;
-        st.active = true;
+        st.activeState = static_cast<int>(ac->state());
+        st.stateReason = m_stateReasons.value(uuid, 0);
 
         auto ip4 = ac->ipV4Config();
         if (ip4.isValid()) {
 
             auto addrs = ip4.addresses();
-            if (!addrs.isEmpty())
-                st.ipv4 = addrs.first().ip().toString();
+            if (!addrs.isEmpty()) {
+                const auto &a = addrs.first();
+                st.ipv4 = a.ip().toString() + "/" + QString::number(a.prefixLength());
+            }
 
             st.gateway = ip4.gateway();
 
@@ -138,8 +162,52 @@ void ConnectionRuntimeService::updateAll()
                 st.dns << addr.toString();
         }
 
-        if (newStates.contains(uuid))
-            st.activating = newStates[uuid].activating;
+        const auto devPaths = ac->devices();
+        if (!devPaths.isEmpty()) {
+            auto dev = NetworkManager::findNetworkInterface(devPaths.first());
+            if (dev) {
+                st.interface = dev->interfaceName();
+                st.mac = NetUtils::getHwAddr(dev);
+                st.mtu = static_cast<int>(dev->mtu());
+
+                auto conType = ac->type();
+                if (conType == NetworkManager::ConnectionSettings::Wired) {
+                    st.deviceType = QStringLiteral("wired");
+                    if (auto wired = dev.objectCast<NetworkManager::WiredDevice>()) {
+                        st.wiredSpeed = wired->bitRate();
+                        st.carrier = wired->carrier();
+                    }
+                } else if (conType == NetworkManager::ConnectionSettings::Wireless) {
+                    st.deviceType = QStringLiteral("wireless");
+                    if (auto wifi = dev.objectCast<NetworkManager::WirelessDevice>()) {
+                        st.wirelessRate = wifi->bitRate();
+                        switch (wifi->mode()) {
+                        case NetworkManager::WirelessDevice::Adhoc:
+                            st.mode = QStringLiteral("Ad-Hoc"); break;
+                        case NetworkManager::WirelessDevice::Infra:
+                            st.mode = QStringLiteral("Infrastructure"); break;
+                        case NetworkManager::WirelessDevice::ApMode:
+                            st.mode = QStringLiteral("AP"); break;
+                        default: break;
+                        }
+
+                        auto ap = wifi->activeAccessPoint();
+                        if (ap) {
+                            st.ssid = ap->ssid();
+                            st.bandwidth = static_cast<int>(ap->bandwidth());
+
+                            uint freq = ap->frequency();
+                            if (freq >= 5900)
+                                st.frequencyBand = QStringLiteral("6 GHz");
+                            else if (freq >= 5000)
+                                st.frequencyBand = QStringLiteral("5 GHz");
+                            else if (freq >= 2000)
+                                st.frequencyBand = QStringLiteral("2.4 GHz");
+                        }
+                    }
+                }
+            }
+        }
 
         newStates.insert(uuid, st);
     }
@@ -156,7 +224,7 @@ void ConnectionRuntimeService::updateAll()
         }
     }
 
-    // 删除
+    // 删除（保留 stateReason 以便外部查询）
     for (auto it = m_states.begin(); it != m_states.end();) {
         if (!newStates.contains(it.key())) {
             QString uuid = it.key();
