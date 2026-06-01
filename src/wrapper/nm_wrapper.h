@@ -26,11 +26,13 @@ namespace Net {
         Q_PROPERTY(ApModel* apModel READ apModel CONSTANT)
         Q_PROPERTY(ApService* apService READ apService CONSTANT)
         Q_PROPERTY(ConnectionListModel* connectionListModel READ connectionListModel CONSTANT)
-        Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
+        // Q_PROPERTY(ConnectionRuntimeModel* connectionRuntimeModel READ connectionRuntimeModel CONSTANT)
         Q_PROPERTY(ConnectionManager* manager READ manager CONSTANT)
         Q_PROPERTY(ConnectionEditorModel* editor READ editor CONSTANT)
         Q_PROPERTY(ConnectionRuntimeModel* runtimeModel READ runtimeModel CONSTANT)
         Q_PROPERTY(QString currentUuid READ currentUuid WRITE setCurrentUuid NOTIFY currentUuidChanged)
+        Q_PROPERTY(bool wirelessEnabled READ isWirelessEnabled NOTIFY wirelessEnabledChanged)
+        Q_PROPERTY(bool networkingEnabled READ isNetworkingEnabled NOTIFY networkingEnabledChanged)
 
     public:
         explicit NetworkManagerWrapper(QObject *parent = nullptr);
@@ -42,7 +44,7 @@ namespace Net {
         ApService* apService();
 
         ConnectionListModel* connectionListModel();
-        ConnectionRuntimeModel* connectionRuntimeModel();
+        // ConnectionRuntimeModel* connectionRuntimeModel();
         ConnectionRuntimeModel* runtimeModel();
 
         ConnectionManager* manager();
@@ -53,17 +55,23 @@ namespace Net {
         Q_INVOKABLE void selectConnection(const QString &uuid);
         Q_INVOKABLE QString firstConnectionUuid() const;
         Q_INVOKABLE bool hasConnection(const QString &uuid) const;
+        Q_INVOKABLE QStringList interfacesForConType(const QString &conType) const;
+
+        bool isWirelessEnabled() const;
+        Q_INVOKABLE void setWirelessEnabled(bool enabled);
+
+        bool isNetworkingEnabled() const;
+        Q_INVOKABLE void setNetworkingEnabled(bool enabled);
+
         // ConnectionSettingModel* connectionSettingModel();
         // QObject* apService();
         // Q_INVOKABLE void activateConnection(const QString &uuid);
         // Q_INVOKABLE void disconnectConnection(const QString &uuid);
         // Q_INVOKABLE void deleteConnection(const QString &uuid);
-        // Q_INVOKABLE void connectTo(const QString &ssid);
 
     private:
-        // void initConnectionRuntimeModel();
         void initDeviceService();
-        void initConSetService();
+        void onConnectionRemoved(const QString &uuid);
 
         DeviceService m_deviceService;
         DeviceFilterProxyModel m_deviceProxy;
@@ -84,5 +92,7 @@ namespace Net {
 
     signals:
         void currentUuidChanged();
+        void wirelessEnabledChanged();
+        void networkingEnabledChanged();
     };
 }

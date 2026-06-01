@@ -24,10 +24,25 @@ QVariant DeviceModel::data(const QModelIndex &index, int role) const
     case NameRole: return dev.name;
     case TypeRole: return dev.type;
     case TypeEnumRole: return static_cast<int>(dev.typeEnum);
+    case HwAddrRole: return dev.hwaddr;
     case MtuRole: return dev.mtu;
 
     case StateRole: return dev.state;
+    case StateSummaryRole: return dev.stateSummary;
     case StateReasonRole: return dev.stateReason;
+    case StateEnumRole: return static_cast<int>(dev.stateEnum);
+
+    case ActiveConRole: return dev.activeConnection;
+
+    case DriverRole: return dev.driver;
+    case DriverVerRole: return dev.driverVersion;
+    case FirmwareRole: return dev.firmwareVersion;
+
+
+    case BitRateRole: return dev.bitRate;
+    case CarrierRole: return dev.carrier;
+    case ActiveSsidRole: return dev.activeSsid;
+    case SignalRole: return dev.signalStrength;
 
     default:
         return {};
@@ -39,10 +54,25 @@ QHash<int, QByteArray> DeviceModel::roleNames() const
     return {
         {NameRole, "devName"},
         {TypeRole, "devType"},
+        {HwAddrRole, "devHwAddr"},
         {MtuRole, "devMtu"},
 
         {StateRole, "devState"},
+        {StateSummaryRole, "devStateSummary"},
         {StateReasonRole, "stateReason"},
+        {StateEnumRole, "devStateEnum"},
+
+        {ActiveConRole, "curConnection"},
+
+        {DriverRole, "devDriver"},
+        {DriverVerRole, "devDriverVersion"},
+        {FirmwareRole, "devFirmwareVersion"},
+
+
+        {BitRateRole, "devBitRate"},
+        {CarrierRole, "devCarrier"},
+        {ActiveSsidRole, "devActiveSsid"},
+        {SignalRole, "devSignalStrength"},
     };
 }
 

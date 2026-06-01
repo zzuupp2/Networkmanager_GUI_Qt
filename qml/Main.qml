@@ -8,8 +8,11 @@ import "pages"
 ApplicationWindow {
     width: 1000
     height: 650
+    minimumWidth: 780
+    minimumHeight: 500
     visible: true
     title: "Network Manager"
+    color: "#292836"
 
     ColumnLayout {
         anchors.fill: parent

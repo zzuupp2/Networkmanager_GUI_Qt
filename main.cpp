@@ -6,6 +6,7 @@
 #include <QTranslator>
 
 #include <src/wrapper/nm_wrapper.h>
+#include <src/model/connection/con_editor_model.h>
 
 int main(int argc, char *argv[])
 {
@@ -21,8 +22,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    qRegisterMetaType<NMVariantMapMap>(
+        "NMVariantMapMap");
     QQmlApplicationEngine engine;
     qRegisterMetaType<Net::DeviceInfo>();
+    qRegisterMetaType<Net::ConnectionSettingInfo>("ConnectionSettingInfo");
+    qmlRegisterType<Net::ConnectionEditorModel>("Networkmanager_GUI_Qt", 1, 0,
+                                                "ConnectionEditorModel");
     Net::NetworkManagerWrapper nm;
     engine.rootContext()->setContextProperty("nm", &nm);
 

@@ -24,6 +24,7 @@ qt_add_qml_module(appNetworkmanager_GUI_Qt
     qml/components/DeviceCard.qml
     qml/components/WifiItem.qml
     qml/components/ConnectionEditorPanel.qml
+    qml/components/NewConnectionDialog.qml
 
     # pages
     qml/pages/DevicePage.qml

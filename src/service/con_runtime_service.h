@@ -10,19 +10,48 @@ namespace Net {
 
 struct RuntimeState
 {
-    bool active = false;
-    bool activating = false;
+    int activeState = 0;   // NetworkManager::ActiveConnection::State
+    int stateReason = 0;   // NetworkManager::ActiveConnection::Reason
 
     QString ipv4;
     QString gateway;
     QStringList dns;
 
+    // Universal device info
+    QString interface;    // e.g. eth0, wlan0
+    QString mac;          // hardware address
+    int mtu = 0;
+
+    // Wired-specific
+    int wiredSpeed = 0;   // Kb/s
+    bool carrier = false;
+
+    // Wireless-specific
+    QString ssid;
+    int wirelessRate = 0; // Kb/s
+    QString mode;
+    int bandwidth = 0;         // MHz
+    QString frequencyBand;     // "2.4 GHz" / "5 GHz" / "6 GHz"
+
+    QString deviceType;   // "wired" / "wireless" / ""
+
     bool operator==(const RuntimeState &o) const {
-        return active == o.active &&
-               activating == o.activating &&
+        return activeState == o.activeState &&
+               stateReason == o.stateReason &&
                ipv4 == o.ipv4 &&
                gateway == o.gateway &&
-               dns == o.dns;
+               dns == o.dns &&
+               interface == o.interface &&
+               mac == o.mac &&
+               mtu == o.mtu &&
+               wiredSpeed == o.wiredSpeed &&
+               carrier == o.carrier &&
+               ssid == o.ssid &&
+               wirelessRate == o.wirelessRate &&
+               mode == o.mode &&
+               bandwidth == o.bandwidth &&
+               frequencyBand == o.frequencyBand &&
+               deviceType == o.deviceType;
     }
 
     bool operator!=(const RuntimeState &o) const {
@@ -30,7 +59,6 @@ struct RuntimeState
     }
 };
 
-// ✅ 类名已改为 ConnectionRuntimeService
 class ConnectionRuntimeService : public QObject
 {
     Q_OBJECT
@@ -49,11 +77,13 @@ public:
 signals:
     void stateChanged(const QString &uuid);
 
+public:
+    void updateAll();
+
 private:
     void refreshActiveConnectionWatchers();
     void attachActiveConnection(const QString &path);
     void detachActiveConnection(const QString &path);
-    void updateAll();
 
 private slots:
     void onActiveConnectionAdded(const QString &path);
@@ -61,6 +91,7 @@ private slots:
 
 private:
     QHash<QString, RuntimeState> m_states;
+    QHash<QString, int> m_stateReasons;
     QHash<QString, NetworkManager::ActiveConnection::Ptr> m_watchedActiveConnections;
 };
 

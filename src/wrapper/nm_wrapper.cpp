@@ -1,4 +1,7 @@
 #include "nm_wrapper.h"
+#include "src/utils/network_utils.h"
+#include <NetworkManagerQt/Manager>
+#include <QDebug>
 #include <QTimer>
 
 namespace Net {
@@ -19,11 +22,63 @@ namespace Net {
         // initConnectionRuntimeModel();
 
         m_editor.setConnectionManager(&m_connectionManager);
-        initDeviceService();
-        // initConSetService();
-        // m_conService.bindModel(&m_conModel);
 
+        // WiFi / 飞行模式 开关同步
+        auto n = NetworkManager::notifier();
+        connect(n, &NetworkManager::Notifier::wirelessEnabledChanged,
+                this, &NetworkManagerWrapper::wirelessEnabledChanged);
+        connect(n, &NetworkManager::Notifier::networkingEnabledChanged,
+                this, &NetworkManagerWrapper::networkingEnabledChanged);
+
+        // 新建连接成功后自动选中
+        connect(&m_connectionManager,
+                &ConnectionManager::connectionAdded,
+                this,
+                [this](const QString &uuid) {
+            if (!uuid.isEmpty())
+                selectConnection(uuid);
+        });
+
+        // 编辑同步
+        connect(&m_connectionManager,
+                &ConnectionManager::connectionUpdated,
+                this,
+                [this](const QString &uuid) {
+            if (uuid == m_currentUuid)
+                m_editor.loadByUuid(uuid);
+        });
+
+        // 连接更新后刷新列表（重命名等场景），NM SettingsNotifier 无 connectionUpdated 信号，
+        // 因此复用我们自己的 ConnectionManager 信号
+        connect(&m_connectionManager,
+                &ConnectionManager::connectionUpdated,
+                &m_connectionList,
+                &ConnectionListModel::reload);
+
+        connect(&m_connectionManager,
+                &ConnectionManager::connectionRemoved,
+                this,
+                &NetworkManagerWrapper::onConnectionRemoved);
+
+        initDeviceService();
+
+        // ConnectionListModel 在 reload（含增删）时收集 uuid 列表并通过此信号发出，
+        // 避免 wrapper 重复查询 listConnections()，消除 DBus 回调中的缓存竞态。
+        connect(&m_connectionList,
+                &ConnectionListModel::connectionsReloaded,
+                this,
+                [this](const QStringList &uuids) {
+                    m_runtimeModel.setConnections(uuids);
+                    m_runtimeModel.refreshPrimaryRow();
+                });
+
+        // 推迟到事件循环启动后填充运行时状态，
+        // 避免 NM 异步属性尚未就绪导致 state() 返回空
         QTimer::singleShot(0, this, [this]() {
+            m_runtimeService.updateAll();
+            // 触发 reload，通过 connectionsReloaded 信号更新 runtime model
+            m_connectionList.reload();
+
             const auto first = firstConnectionUuid();
             if (!first.isEmpty()) {
                 selectConnection(first);
@@ -53,22 +108,8 @@ namespace Net {
         return &m_connectionList;
     }
 
-    ConnectionRuntimeModel* NetworkManagerWrapper::connectionRuntimeModel() {
-        QStringList uuids;
-
-        const auto conns = NetworkManager::listConnections();
-
-        for (const auto &c : conns) {
-            if (c)
-                uuids << c->uuid();
-        }
-
-        m_runtimeModel.setConnections(uuids);
-        return &m_runtimeModel;
-    }
-
     ConnectionRuntimeModel* NetworkManagerWrapper::runtimeModel() {
-        return connectionRuntimeModel();
+        return &m_runtimeModel;
     }
 
     ConnectionManager* NetworkManagerWrapper::manager() {
@@ -113,23 +154,30 @@ namespace Net {
         return m_connectionList.contains(uuid);
     }
 
-    // ConnectionSettingModel* NetworkManagerWrapper::connectionSettingModel() {
-    //     return &m_conSettingModel;
-    // }
+    QStringList NetworkManagerWrapper::interfacesForConType(const QString &conType) const
+    {
+        return NetUtils::interfacesForConType(conType);
+    }
 
-    // void NetworkManagerWrapper::initConnectionRuntimeModel()
-    // {
-    //     QStringList uuids;
+    bool NetworkManagerWrapper::isWirelessEnabled() const
+    {
+        return NetworkManager::isWirelessEnabled();
+    }
 
-    //     const auto conns = NetworkManager::listConnections();
+    void NetworkManagerWrapper::setWirelessEnabled(bool enabled)
+    {
+        NetworkManager::setWirelessEnabled(enabled);
+    }
 
-    //     for (const auto &c : conns) {
-    //         if (c)
-    //             uuids << c->uuid();
-    //     }
+    bool NetworkManagerWrapper::isNetworkingEnabled() const
+    {
+        return NetworkManager::isNetworkingEnabled();
+    }
 
-    //     m_runtimeModel.setConnections(uuids);
-    // }
+    void NetworkManagerWrapper::setNetworkingEnabled(bool enabled)
+    {
+        NetworkManager::setNetworkingEnabled(enabled);
+    }
 
     void NetworkManagerWrapper::initDeviceService() {
         connect(&m_deviceService,
@@ -150,64 +198,23 @@ namespace Net {
         m_deviceService.init();
     }
 
-    // void NetworkManagerWrapper::initConSetService() {
+    void NetworkManagerWrapper::onConnectionRemoved(const QString &uuid)
+    {
+        qDebug() << "[onConnectionRemoved] uuid to remove:" << uuid;
 
-    //     // connect(this, &ConnectionService::connectionAdded,
-    //     //         model, &ConnectionModel::addConnection);
+        if (m_currentUuid == uuid) {
+            m_currentUuid.clear();
+            emit currentUuidChanged();
+        }
+        // 立即移除，不等待 SettingsNotifier → reload → listConnections() 刷新，
+        // 避免 NM/KF6 内部缓存窗口期导致列表残留空条目。
+        m_connectionList.removeUuid(uuid);
+        m_runtimeModel.removeUuid(uuid);
 
-    //     connect(&m_conSettingService,
-    //             &ConnectionSettingService::connectionRemoved,
-    //             &m_conSettingModel,
-    //             &ConnectionSettingModel::removeConnection);
-
-    //     connect(&m_conSettingService,
-    //             &ConnectionSettingService::connectionUpdated,
-    //             &m_conSettingModel,
-    //             &ConnectionSettingModel::updateConnection);
-
-    //     // // ===== 监听 active 变化 =====
-    //     // connect(NetworkManager::notifier(),
-    //     //         &NetworkManager::Notifier::activeConnectionAdded,
-    //     //         this, &ConnectionService::onActiveConnectionChanged);
-
-    //     // connect(NetworkManager::notifier(),
-    //     //         &NetworkManager::Notifier::activeConnectionRemoved,
-    //     //         this, &ConnectionService::onActiveConnectionChanged);
-
-    //     m_conSettingService.init();
-    // }
-
-    // ===== 操作接口 =====
-    // void NetworkManagerWrapper::activateConnection(const QString &uuid)
-    // {
-
-    //     auto activting = NetworkManager::activatingConnection();
-    //     if (activting) {
-    //         return;
-    //     }
-
-    //     auto conn = NetworkManager::findConnectionByUuid(uuid);
-    //     if (!conn || !conn->isValid()) {
-    //         return;
-    //     }
-
-    //     const QString path = conn->path();
-
-    //     if (path.isEmpty()) {
-    //         return;
-    //     }
-
-    //     NetworkManager::activateConnection(path, "", "");
-    // }
-
-    // void NetworkManagerWrapper::disconnectConnection(const QString &uuid)
-    // {
-    //     for (const auto &acon : NetworkManager::activeConnections()) {
-    //         if (acon->connection() &&
-    //             acon->connection()->uuid() == uuid) {
-    //             NetworkManager::deactivateConnection(acon->path());
-    //         }
-    //     }
-    // }
+        qDebug() << "[onConnectionRemoved] optimistic removal done, list count:"
+                 << m_connectionList.rowCount({});
+        qDebug() << "[onConnectionRemoved] runtime model count:"
+                 << m_runtimeModel.rowCount({});
+    }
 
 }
